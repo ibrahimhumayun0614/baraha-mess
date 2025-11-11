@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UtensilsCrossed, User, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,8 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Toaster, toast } from 'sonner';
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login, role } = useAuthStore();
+  const { memberId } = useParams();
+  const { login, role: currentRole, member: currentMember } = useAuthStore();
   const { data: members, isLoading } = useQuery<Member[]>({
     queryKey: ['members'],
     queryFn: () => api('/api/members'),
@@ -22,22 +23,42 @@ export function LoginPage() {
     onError: (err) => console.error("Failed to create audit log:", err),
   });
   useEffect(() => {
-    if (role) {
-      const destination = role === 'admin' ? '/admin/dashboard' : '/member/dashboard';
+    if (currentRole) {
+      const destination = currentMember?.role === 'admin' ? '/admin/dashboard' : '/member/dashboard';
       navigate(destination);
     }
-  }, [role, navigate]);
-  const handleLogin = (selectedRole: 'admin' | 'member', member?: Member) => {
-    login(selectedRole, member);
-    toast.success(`Logged in as ${member ? member.name : 'Admin'}`);
+  }, [currentRole, currentMember, navigate]);
+  useEffect(() => {
+    if (memberId && members) {
+      const memberToLogin = members.find(m => m.id === memberId);
+      if (memberToLogin) {
+        handleLogin(memberToLogin);
+      }
+    }
+  }, [memberId, members]);
+  const handleLogin = (member: Member) => {
+    const role = member.role === 'admin' ? 'admin' : 'member';
+    login(role, member);
+    toast.success(`Logged in as ${member.name}`);
     createAuditLog({
       event: 'login',
-      userId: member ? member.id : 'admin',
-      userName: member ? member.name : 'Admin',
+      userId: member.id,
+      userName: member.name,
       deviceInfo: getDeviceInfo(),
     });
-    const destination = selectedRole === 'admin' ? '/admin/dashboard' : '/member/dashboard';
+    const destination = member.role === 'admin' ? '/admin/dashboard' : '/member/dashboard';
     navigate(destination);
+  };
+  const handleSuperAdminLogin = () => {
+    login('admin'); // No member object for super_admin
+    toast.success(`Logged in as Super Admin`);
+    createAuditLog({
+      event: 'login',
+      userId: 'super_admin',
+      userName: 'Super Admin',
+      deviceInfo: getDeviceInfo(),
+    });
+    navigate('/admin/dashboard');
   };
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
@@ -66,11 +87,11 @@ export function LoginPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Button
-              onClick={() => handleLogin('admin')}
+              onClick={handleSuperAdminLogin}
               className="w-full h-14 text-lg bg-gray-800 hover:bg-gray-900 text-white transition-all duration-300 transform hover:scale-105"
             >
               <Shield className="mr-2 h-5 w-5" />
-              Admin Login
+              Super Admin Login
             </Button>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -87,7 +108,7 @@ export function LoginPage() {
                 {members?.map((member) => (
                   <Button
                     key={member.id}
-                    onClick={() => handleLogin('member', member)}
+                    onClick={() => handleLogin(member)}
                     variant="outline"
                     className="w-full h-12 text-md transition-all duration-300 transform hover:scale-105 hover:bg-slate-100"
                   >
@@ -101,7 +122,7 @@ export function LoginPage() {
         </Card>
       </motion.div>
       <footer className="absolute bottom-4 text-center text-muted-foreground/80 text-sm">
-        <p>Built with ❤️ at Cloudflare</p>
+        <p>Built with ���️ at Cloudflare</p>
       </footer>
     </div>
   );

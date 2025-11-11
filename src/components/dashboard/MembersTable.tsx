@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, ShieldCheck, UserCheck } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,8 +25,10 @@ interface MembersTableProps {
   members: MemberWithBalance[];
   onEdit: (member: MemberWithBalance) => void;
   onDelete: (id: string) => void;
+  isSuperAdmin?: boolean;
+  onToggleAdmin?: (args: { memberId: string; newRole: 'admin' | 'member' }) => void;
 }
-const MembersTable = ({ members, onEdit, onDelete }: MembersTableProps) => {
+const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin }: MembersTableProps) => {
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(amount);
   return (
     <div className="rounded-lg border">
@@ -34,6 +37,7 @@ const MembersTable = ({ members, onEdit, onDelete }: MembersTableProps) => {
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Type</TableHead>
+            <TableHead>Role</TableHead>
             <TableHead className="text-right">Contribution</TableHead>
             <TableHead className="text-right">Expenses</TableHead>
             <TableHead className="text-right">Balance</TableHead>
@@ -48,6 +52,11 @@ const MembersTable = ({ members, onEdit, onDelete }: MembersTableProps) => {
                 <TableCell>
                   <Badge variant={member.type === 'standard' ? 'default' : 'secondary'}>
                     {member.type}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={member.role === 'admin' ? 'outline' : 'secondary'} className={member.role === 'admin' ? 'border-green-600 text-green-700' : ''}>
+                    {member.role}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">{formatCurrency(member.contribution)}</TableCell>
@@ -68,7 +77,24 @@ const MembersTable = ({ members, onEdit, onDelete }: MembersTableProps) => {
                         <Pencil className="mr-2 h-4 w-4" />
                         <span>Edit</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onDelete(member.id)} className="text-red-600">
+                      {isSuperAdmin && onToggleAdmin && (
+                        <>
+                          <DropdownMenuSeparator />
+                          {member.role === 'member' ? (
+                            <DropdownMenuItem onClick={() => onToggleAdmin({ memberId: member.id, newRole: 'admin' })}>
+                              <ShieldCheck className="mr-2 h-4 w-4" />
+                              <span>Promote to Admin</span>
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => onToggleAdmin({ memberId: member.id, newRole: 'member' })}>
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              <span>Demote to Member</span>
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onDelete(member.id)} className="text-red-600 focus:text-red-600 focus:bg-red-50">
                         <Trash2 className="mr-2 h-4 w-4" />
                         <span>Delete</span>
                       </DropdownMenuItem>
@@ -79,7 +105,7 @@ const MembersTable = ({ members, onEdit, onDelete }: MembersTableProps) => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 No members found.
               </TableCell>
             </TableRow>
