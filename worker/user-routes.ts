@@ -5,7 +5,7 @@ import { ok, bad, notFound, isStr } from './core-utils';
 import type { Member, MemberType, Expense, AuditLog } from "@shared/types";
 import { hashPassword } from "./auth-utils";
 // Updated super admin password to 'Muhammed97@#'
-const SUPER_ADMIN_PASSWORD_HASH = 'f2a398851346259a7c538813700754194545e12b7b51e13e51d3b141';
+const SUPER_ADMIN_PASSWORD_HASH = 'b2e909512216d362dececcda68d4ed4b77a7413e1a80e8154b84ddac2fd533dd';
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // AUTH
   app.post('/api/auth/login', async (c) => {
