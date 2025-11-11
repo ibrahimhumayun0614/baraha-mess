@@ -13,6 +13,7 @@ const MemberFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   type: z.enum(['standard', 'reduced']),
   contribution: z.coerce.number().min(0, 'Contribution must be a positive number').optional(),
+  daysEaten: z.coerce.number().int().min(0, 'Must be a positive number').optional(),
 });
 type FormValues = z.infer<typeof MemberFormSchema>;
 interface MemberFormProps {
@@ -28,6 +29,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
       name: member?.name || '',
       type: member?.type || 'standard',
       contribution: member?.contribution,
+      daysEaten: member?.daysEaten,
     },
   });
   const mutation = useMutation({
@@ -86,19 +88,34 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
           )}
         />
         {isEditMode && (
-           <FormField
-            control={form.control}
-            name="contribution"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contribution (AED)</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="e.g., 450" {...field} value={field.value ?? ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <>
+            <FormField
+              control={form.control}
+              name="contribution"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contribution (AED)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 450" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="daysEaten"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Days Eaten</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 30" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         )}
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending ? 'Saving...' : (isEditMode ? 'Update Member' : 'Save Member')}
