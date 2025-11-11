@@ -109,8 +109,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // MEMBERS
   app.get('/api/members', async (c) => {
     let members = await listAll(cursor => MemberEntity.list(c.env, cursor));
-    if (members.length === 0) {
-      const settings = await new MessSettingsEntity(c.env).getState();
+    const settings = await new MessSettingsEntity(c.env).getState();
+    if (members.length === 0 && !settings.initialized) {
       const mockMembersData: { name: string; type: MemberType, role: 'admin' | 'member' }[] = [
         { name: 'Alice', type: 'standard', role: 'admin' },
         { name: 'Bob', type: 'standard', role: 'member' },
