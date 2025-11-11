@@ -2,7 +2,7 @@ import { UtensilsCrossed } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Member } from '@shared/types';
 interface DashboardHeaderProps {
-  user: Member | { name: 'Admin' } | null;
+  user: Member | { name: string } | null;
   onLogout: () => void;
 }
 const DashboardHeader = ({ user, onLogout }: DashboardHeaderProps) => {
