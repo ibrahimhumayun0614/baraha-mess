@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { DollarSign, Users, ShoppingCart, Download, TrendingUp } from 'lucide-react';
+import { DollarSign, Users, ShoppingCart, Download, TrendingUp, KeyRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
@@ -20,6 +20,7 @@ import ExpenseForm from '@/components/forms/ExpenseForm';
 import { exportAdminReport } from '@/lib/reporting';
 import SetAdminPasswordDialog from './SetAdminPasswordDialog';
 import ResetAdminPasswordDialog from './ResetAdminPasswordDialog';
+import SuperAdminChangePasswordDialog from './SuperAdminChangePasswordDialog';
 interface MessState {
   settings: MessSettings;
   members: Member[];
@@ -38,6 +39,7 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [promotingMember, setPromotingMember] = useState<Member | null>(null);
   const [resettingPasswordFor, setResettingPasswordFor] = useState<Member | null>(null);
+  const [isChangePasswordOpen, setChangePasswordOpen] = useState(false);
   const { mutate: createAuditLog } = useMutation({
     mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
     onError: (err) => console.error("Failed to create audit log:", err),
@@ -119,6 +121,12 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
             <Download className="mr-2 h-4 w-4" />
             Download Report
           </Button>
+          {isSuperAdmin && (
+            <Button onClick={() => setChangePasswordOpen(true)} variant="secondary" className="w-full sm:w-auto">
+              <KeyRound className="mr-2 h-4 w-4" />
+              Change My Password
+            </Button>
+          )}
         </div>
       </div>
       <motion.div
@@ -196,6 +204,12 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
           member={resettingPasswordFor}
           onClose={() => setResettingPasswordFor(null)}
           onConfirm={(password) => resetPassword({ memberId: resettingPasswordFor.id, password })}
+        />
+      )}
+      {isSuperAdmin && (
+        <SuperAdminChangePasswordDialog
+          isOpen={isChangePasswordOpen}
+          onClose={() => setChangePasswordOpen(false)}
         />
       )}
     </main>
