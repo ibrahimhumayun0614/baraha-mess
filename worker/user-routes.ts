@@ -94,12 +94,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const state = await settings.getState();
     const members = await listAll<Member>(MemberEntity, c.env);
     const expenses = await listAll<Expense>(ExpenseEntity, c.env);
+    const auditLogs = await listAll<AuditLog>(AuditLogEntity, c.env);
     // Strip passwords before sending to client
     const membersWithoutPasswords = members.map(m => {
       const { password, ...rest } = m;
       return rest;
     });
-    return ok(c, { settings: state, members: membersWithoutPasswords, expenses: expenses });
+    return ok(c, { settings: state, members: membersWithoutPasswords, expenses: expenses, auditLogs: auditLogs });
   });
   // MEMBERS
   app.get('/api/members', async (c) => {
