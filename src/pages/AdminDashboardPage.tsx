@@ -14,7 +14,7 @@ interface MessState {
 }
 export function AdminDashboardPage() {
   const navigate = useNavigate();
-  const logout = useAuthStore((state) => state.logout);
+  const { member, logout } = useAuthStore();
   const { data: messState, isLoading, error } = useQuery<MessState>({
     queryKey: ['messState'],
     queryFn: () => api('/api/mess/state'),
@@ -24,6 +24,7 @@ export function AdminDashboardPage() {
     toast.success('Logged out successfully');
     navigate('/');
   };
+  const adminUser = member || { name: 'Super Admin' };
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -48,14 +49,14 @@ export function AdminDashboardPage() {
       );
     }
     if (messState) {
-      return <AdminDashboard messState={messState} />;
+      return <AdminDashboard messState={messState} adminUser={member} />;
     }
     return null;
   };
   return (
     <div className="min-h-screen bg-slate-50">
       <Toaster richColors />
-      <DashboardHeader user={{ name: 'Admin' }} onLogout={handleLogout} />
+      <DashboardHeader user={adminUser} onLogout={handleLogout} />
       {renderContent()}
     </div>
   );
