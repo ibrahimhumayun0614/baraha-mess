@@ -13,13 +13,13 @@ import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
 import { useAuthStore } from '@/hooks/use-auth-store';
 import type { Member, Expense } from '@shared/types';
-const formSchema = z.object({
+const ExpenseFormSchema = z.object({
   memberId: z.string().min(1, 'Please select a member'),
   amount: z.coerce.number().positive('Amount must be positive'),
   date: z.string().min(1, 'Date is required'),
   note: z.string().optional(),
 });
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof ExpenseFormSchema>;
 interface ExpenseFormProps {
   members: Member[];
   expense?: Expense;
@@ -31,10 +31,10 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
   const loggedInMember = useAuthStore((state) => state.member);
   const isEditMode = !!expense;
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(ExpenseFormSchema),
     defaultValues: {
       memberId: expense?.memberId || (role === 'member' ? loggedInMember?.id : ''),
-      amount: expense?.amount,
+      amount: expense?.amount || undefined,
       date: expense ? format(new Date(expense.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       note: expense?.note || '',
     },

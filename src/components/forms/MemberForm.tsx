@@ -9,12 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api-client';
 import type { Member } from '@shared/types';
-const formSchema = z.object({
+const MemberFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   type: z.enum(['standard', 'reduced']),
   contribution: z.coerce.number().min(0, 'Contribution must be a positive number').optional(),
 });
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof MemberFormSchema>;
 interface MemberFormProps {
   member?: Member;
   onSuccess: () => void;
@@ -23,7 +23,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
   const queryClient = useQueryClient();
   const isEditMode = !!member;
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(MemberFormSchema),
     defaultValues: {
       name: member?.name || '',
       type: member?.type || 'standard',
