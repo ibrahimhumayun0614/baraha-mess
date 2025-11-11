@@ -28,6 +28,10 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
   const queryClient = useQueryClient();
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const { mutate: createAuditLog } = useMutation({
+    mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
+    onError: (err) => console.error("Failed to create audit log:", err),
+  });
   const { mutate: deleteMember } = useMutation({
     mutationFn: (id: string) => api(`/api/members/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
@@ -43,10 +47,6 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
       queryClient.invalidateQueries({ queryKey: ['messState'] });
     },
     onError: (err) => toast.error((err as Error).message),
-  });
-  const { mutate: createAuditLog } = useMutation({
-    mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
-    onError: (err) => console.error("Failed to create audit log:", err),
   });
   const { totalContribution, totalSpent, balance, membersWithExpenses } = useMemo(() => {
     if (!messState) return { totalContribution: 0, totalSpent: 0, balance: 0, membersWithExpenses: [] };

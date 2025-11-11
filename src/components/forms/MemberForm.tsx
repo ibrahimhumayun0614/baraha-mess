@@ -8,10 +8,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api-client';
-import type { Member, MemberType } from '@shared/types';
+import type { Member } from '@shared/types';
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   type: z.enum(['standard', 'reduced']),
+  contribution: z.coerce.number().min(0, 'Contribution must be a positive number'),
 });
 interface MemberFormProps {
   member?: Member;
@@ -19,21 +20,23 @@ interface MemberFormProps {
 }
 const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
   const queryClient = useQueryClient();
+  const isEditMode = !!member;
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: member?.name || '',
       type: member?.type || 'standard',
+      contribution: member?.contribution,
     },
   });
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      const endpoint = member ? `/api/members/${member.id}` : '/api/members';
-      const method = member ? 'PUT' : 'POST';
+      const endpoint = isEditMode ? `/api/members/${member.id}` : '/api/members';
+      const method = isEditMode ? 'PUT' : 'POST';
       return api(endpoint, { method, body: JSON.stringify(values) });
     },
     onSuccess: () => {
-      toast.success(`Member ${member ? 'updated' : 'added'} successfully!`);
+      toast.success(`Member ${isEditMode ? 'updated' : 'added'} successfully!`);
       queryClient.invalidateQueries({ queryKey: ['messState'] });
       onSuccess();
     },
@@ -81,8 +84,23 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
             </FormItem>
           )}
         />
+        {isEditMode && (
+           <FormField
+            control={form.control}
+            name="contribution"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contribution (AED)</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 450" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? 'Saving...' : 'Save Member'}
+          {mutation.isPending ? 'Saving...' : (isEditMode ? 'Update Member' : 'Save Member')}
         </Button>
       </form>
     </Form>
