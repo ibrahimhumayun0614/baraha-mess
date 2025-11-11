@@ -104,11 +104,15 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     return ok(c, membersWithoutPasswords);
   });
   app.post('/api/members', async (c) => {
-    const { name, type } = (await c.req.json()) as { name?: string; type?: MemberType };
+    const { name, type, days } = (await c.req.json()) as { name?: string; type?: MemberType; days?: number };
     if (!isStr(name) || !['standard', 'reduced'].includes(type!)) return bad(c, 'Name and type are required');
     const settings = await new MessSettingsEntity(c.env).getState();
-    const contribution = type === 'standard' ? settings.standardContribution : settings.reducedContribution;
-    const member: Member = { id: crypto.randomUUID(), name, type: type!, contribution, role: 'member', days: settings.totalDays };
+    const memberDays = typeof days === 'number' && days >= 0 ? days : settings.totalDays;
+    const baseContribution = type === 'standard' ? settings.standardContribution : settings.reducedContribution;
+    const contribution = settings.totalDays > 0
+      ? (baseContribution / settings.totalDays) * memberDays
+      : baseContribution;
+    const member: Member = { id: crypto.randomUUID(), name, type: type!, contribution, role: 'member', days: memberDays };
     await MemberEntity.create(c.env, member);
     await AuditLogEntity.create(c.env, {
       id: crypto.randomUUID(),
@@ -133,13 +137,22 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const updatePayload: Partial<Member> = {};
     if (name) updatePayload.name = name;
     if (type) updatePayload.type = type;
+    if (typeof days === 'number') updatePayload.days = days;
+    // Manual contribution override takes precedence
     if (typeof contribution === 'number') {
       updatePayload.contribution = contribution;
-    } else if (type && type !== oldMember.type) {
+    } else if (type || typeof days === 'number') {
+      // If no manual override, recalculate if type or days change
       const settings = await new MessSettingsEntity(c.env).getState();
-      updatePayload.contribution = type === 'standard' ? settings.standardContribution : settings.reducedContribution;
+      const newType = type || oldMember.type;
+      const newDays = typeof days === 'number' ? days : oldMember.days;
+      const baseContribution = newType === 'standard' ? settings.standardContribution : settings.reducedContribution;
+      if (settings.totalDays > 0 && typeof newDays === 'number') {
+        updatePayload.contribution = (baseContribution / settings.totalDays) * newDays;
+      } else {
+        updatePayload.contribution = baseContribution;
+      }
     }
-    if (typeof days === 'number') updatePayload.days = days;
     await memberEntity.patch(updatePayload);
     const newMember = await memberEntity.getState();
     await AuditLogEntity.create(c.env, {
