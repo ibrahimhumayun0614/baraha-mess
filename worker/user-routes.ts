@@ -108,30 +108,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // MEMBERS
   app.get('/api/members', async (c) => {
-    let members = await listAll(cursor => MemberEntity.list(c.env, cursor));
-    const settings = await new MessSettingsEntity(c.env).getState();
-    if (members.length === 0 && !settings.initialized) {
-      const mockMembersData: { name: string; type: MemberType, role: 'admin' | 'member' }[] = [
-        { name: 'Alice', type: 'standard', role: 'admin' },
-        { name: 'Bob', type: 'standard', role: 'member' },
-        { name: 'Charlie', type: 'reduced', role: 'member' },
-      ];
-      const newMembers: Member[] = mockMembersData.map((m) => ({
-        id: crypto.randomUUID(),
-        name: m.name,
-        type: m.type,
-        role: m.role,
-        contribution: m.type === 'standard' ? settings.standardContribution : settings.reducedContribution,
-        days: settings.totalDays,
-      }));
-      // Set a default password for the mock admin
-      const alice = newMembers.find(m => m.name === 'Alice');
-      if (alice) {
-        alice.password = await hashPassword('password');
-      }
-      await Promise.all(newMembers.map((m) => MemberEntity.create(c.env, m)));
-      members = await listAll(cursor => MemberEntity.list(c.env, cursor)); // Re-fetch to get the created members
-    }
+    const members = await listAll(cursor => MemberEntity.list(c.env, cursor));
     // Strip passwords before sending to client
     const membersWithoutPasswords = members.map(m => {
       const { password, ...rest } = m;

@@ -35,7 +35,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
   const queryClient = useQueryClient();
   const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [pendingValues, setPendingValues] = useState<FormValues | null>(null);
-  const form = useForm<FormValues>({
+  const form = useForm({
     resolver: zodResolver(SetupMessFormSchema),
     defaultValues: {
       standardContribution: settings?.standardContribution || 450,
