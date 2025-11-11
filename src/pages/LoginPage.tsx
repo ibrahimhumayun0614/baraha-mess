@@ -43,7 +43,7 @@ export function LoginPage() {
         userName: userName,
         deviceInfo: getDeviceInfo(),
       });
-      const destination = loggedInMember?.role === 'admin' ? '/admin/dashboard' : '/member/dashboard';
+      const destination = loggedInMember?.role === 'admin' || !loggedInMember ? '/admin/dashboard' : '/member/dashboard';
       navigate(destination);
     },
     onError: (err) => {
@@ -52,7 +52,7 @@ export function LoginPage() {
   });
   useEffect(() => {
     if (currentRole) {
-      const destination = currentMember?.role === 'admin' ? '/admin/dashboard' : '/member/dashboard';
+      const destination = currentMember?.role === 'admin' || !currentMember ? '/admin/dashboard' : '/member/dashboard';
       navigate(destination);
     }
   }, [currentRole, currentMember, navigate]);
@@ -152,7 +152,7 @@ export function LoginPage() {
         <div className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-4 mb-4 shadow-lg">
           <UtensilsCrossed className="w-10 h-10" />
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-800">DineFlow</h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-800">Baraha Mess</h1>
         <p className="text-muted-foreground mt-2">Effortless Mess Management</p>
       </motion.div>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="w-full sm:max-w-md">
@@ -167,7 +167,7 @@ export function LoginPage() {
         </Card>
       </motion.div>
       <footer className="absolute bottom-4 text-center text-muted-foreground/80 text-sm">
-        <p>Built with ❤️ at Cloudflare</p>
+        <p>Built with ❤��� at Cloudflare</p>
       </footer>
     </div>
   );
