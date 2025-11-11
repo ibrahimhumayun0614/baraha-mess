@@ -15,12 +15,12 @@ const DashboardActions = ({ settings, members }: DashboardActionsProps) => {
   const [isMemberOpen, setMemberOpen] = useState(false);
   const [isExpenseOpen, setExpenseOpen] = useState(false);
   return (
-    <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-4 bg-white rounded-lg shadow-md w-full">
-      <div className="text-center md:text-left">
+    <div className="flex flex-wrap gap-4 items-center justify-between p-4 bg-white rounded-lg shadow-md">
+      <div>
         <h2 className="text-xl font-semibold text-gray-800">Admin Controls</h2>
         <p className="text-sm text-muted-foreground">Manage your mess settings and entries.</p>
       </div>
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex gap-2">
         <Dialog open={isSetupOpen} onOpenChange={setSetupOpen}>
           <DialogTrigger asChild>
             <Button variant="outline">

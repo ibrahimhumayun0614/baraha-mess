@@ -4,42 +4,36 @@ import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api-client';
-import type { Member } from '@shared/types';
-const MemberFormSchema = z.object({
+import type { Member, MemberType } from '@shared/types';
+const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   type: z.enum(['standard', 'reduced']),
-  contribution: z.coerce.number().min(0, 'Contribution must be a positive number').optional(),
-  days: z.coerce.number().int().min(0, 'Must be a positive number').optional(),
 });
-type FormValues = z.infer<typeof MemberFormSchema>;
 interface MemberFormProps {
   member?: Member;
   onSuccess: () => void;
 }
 const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
   const queryClient = useQueryClient();
-  const isEditMode = !!member;
-  const form = useForm({
-    resolver: zodResolver(MemberFormSchema),
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: member?.name || '',
       type: member?.type || 'standard',
-      contribution: member?.contribution,
-      days: member?.days,
     },
   });
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => {
-      const endpoint = isEditMode ? `/api/members/${member.id}` : '/api/members';
-      const method = isEditMode ? 'PUT' : 'POST';
+    mutationFn: (values: z.infer<typeof formSchema>) => {
+      const endpoint = member ? `/api/members/${member.id}` : '/api/members';
+      const method = member ? 'PUT' : 'POST';
       return api(endpoint, { method, body: JSON.stringify(values) });
     },
     onSuccess: () => {
-      toast.success(`Member ${isEditMode ? 'updated' : 'added'} successfully!`);
+      toast.success(`Member ${member ? 'updated' : 'added'} successfully!`);
       queryClient.invalidateQueries({ queryKey: ['messState'] });
       onSuccess();
     },
@@ -47,7 +41,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
       toast.error(`Failed to save member: ${error.message}`);
     },
   });
-  function onSubmit(values: z.infer<typeof MemberFormSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate(values);
   }
   return (
@@ -87,42 +81,8 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="days"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Days</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="e.g., 30" {...field} value={field.value === undefined ? '' : String(field.value)} />
-              </FormControl>
-              <FormDescription>
-                Contribution is auto-calculated based on this. Leave blank for the full month.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {isEditMode && (
-          <FormField
-            control={form.control}
-            name="contribution"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contribution (AED)</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="e.g., 450" {...field} value={field.value === undefined ? '' : String(field.value)} />
-                </FormControl>
-                <FormDescription>
-                  This is a manual override. The contribution will be recalculated if you change Type or Days.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? 'Saving...' : (isEditMode ? 'Update Member' : 'Save Member')}
+          {mutation.isPending ? 'Saving...' : 'Save Member'}
         </Button>
       </form>
     </Form>

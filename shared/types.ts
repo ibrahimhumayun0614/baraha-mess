@@ -3,22 +3,25 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
 }
-
-// Minimal real-world chat example types (shared by frontend and worker)
-export interface User {
+export type MemberType = 'standard' | 'reduced';
+export interface Member {
   id: string;
   name: string;
+  type: MemberType;
+  contribution: number;
 }
-
-export interface Chat {
-  id: string;
-  title: string;
+export interface Expense {
+  id:string;
+  memberId: string;
+  amount: number;
+  date: string; // ISO string
+  note?: string;
+  deviceInfo: string;
 }
-
-export interface ChatMessage {
-  id: string;
-  chatId: string;
-  userId: string;
-  text: string;
-  ts: number; // epoch millis
+export interface MessSettings {
+  id: 'global'; // Singleton
+  standardContribution: number;
+  reducedContribution: number;
+  totalDays: number;
+  initialized: boolean;
 }
