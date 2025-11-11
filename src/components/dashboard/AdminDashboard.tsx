@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { DollarSign, Users, ShoppingCart, Download, TrendingUp, KeyRound } from 'lucide-react';
+import { DollarSign, Users, ShoppingCart, Download, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
@@ -19,7 +19,7 @@ import MemberForm from '@/components/forms/MemberForm';
 import ExpenseForm from '@/components/forms/ExpenseForm';
 import { exportAdminReport } from '@/lib/reporting';
 import SetAdminPasswordDialog from './SetAdminPasswordDialog';
-import ChangePasswordDialog from './ChangePasswordDialog';
+import ResetAdminPasswordDialog from './ResetAdminPasswordDialog';
 interface MessState {
   settings: MessSettings;
   members: Member[];
@@ -37,7 +37,7 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [promotingMember, setPromotingMember] = useState<Member | null>(null);
-  const [isChangePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [resettingPasswordFor, setResettingPasswordFor] = useState<Member | null>(null);
   const { mutate: createAuditLog } = useMutation({
     mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
     onError: (err) => console.error("Failed to create audit log:", err),
@@ -67,6 +67,16 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
       setPromotingMember(null);
     },
     onError: (err) => toast.error(`Failed to update role: ${(err as Error).message}`),
+  });
+  const { mutate: resetPassword } = useMutation({
+    mutationFn: ({ memberId, password }: { memberId: string; password?: string }) =>
+      api(`/api/members/${memberId}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
+    onSuccess: () => {
+      toast.success("Admin password has been reset.");
+      queryClient.invalidateQueries({ queryKey: ['messState'] });
+      setResettingPasswordFor(null);
+    },
+    onError: (err) => toast.error(`Failed to reset password: ${(err as Error).message}`),
   });
   const { totalContribution, totalSpent, balance, membersWithExpenses, adjustedDailyRate } = useMemo(() => {
     if (!messState) return { totalContribution: 0, totalSpent: 0, balance: 0, membersWithExpenses: [], adjustedDailyRate: 0 };
@@ -109,12 +119,6 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
             <Download className="mr-2 h-4 w-4" />
             Download Report
           </Button>
-          {adminUser && (
-            <Button onClick={() => setChangePasswordOpen(true)} variant="secondary" className="w-full sm:w-auto">
-              <KeyRound className="mr-2 h-4 w-4" />
-              Change Password
-            </Button>
-          )}
         </div>
       </div>
       <motion.div
@@ -140,6 +144,7 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
               isSuperAdmin={isSuperAdmin}
               onToggleAdmin={toggleAdminRole}
               onPromote={(member) => setPromotingMember(member)}
+              onResetPassword={(member) => setResettingPasswordFor(member)}
             />
           </CardContent>
         </Card>
@@ -154,12 +159,14 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
             />
           </CardContent>
         </Card>
-        <Card className="shadow-lg">
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Audit Logs</h2>
-            <AuditLogsTable auditLogs={messState?.auditLogs || []} />
-          </CardContent>
-        </Card>
+        {isSuperAdmin && (
+          <Card className="shadow-lg">
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800">Audit Logs</h2>
+              <AuditLogsTable auditLogs={messState?.auditLogs || []} />
+            </CardContent>
+          </Card>
+        )}
       </div>
       <Dialog open={!!editingMember} onOpenChange={(isOpen) => !isOpen && setEditingMember(null)}>
         <DialogContent>
@@ -184,11 +191,11 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
           onConfirm={(password) => toggleAdminRole({ memberId: promotingMember.id, newRole: 'admin', password })}
         />
       )}
-      {adminUser && (
-        <ChangePasswordDialog
-          memberId={adminUser.id}
-          isOpen={isChangePasswordOpen}
-          onClose={() => setChangePasswordOpen(false)}
+      {resettingPasswordFor && (
+        <ResetAdminPasswordDialog
+          member={resettingPasswordFor}
+          onClose={() => setResettingPasswordFor(null)}
+          onConfirm={(password) => resetPassword({ memberId: resettingPasswordFor.id, password })}
         />
       )}
     </main>

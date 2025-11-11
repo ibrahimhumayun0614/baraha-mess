@@ -45,23 +45,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }
     return bad(c, 'Invalid login request');
   });
-  app.post('/api/auth/change-password', async (c) => {
-    const { memberId, oldPassword, newPassword } = await c.req.json<{ memberId: string, oldPassword?: string, newPassword?: string }>();
-    if (!memberId || !oldPassword || !newPassword) {
-      return bad(c, 'Member ID, old password, and new password are required');
-    }
-    const memberEntity = new MemberEntity(c.env, memberId);
-    if (!(await memberEntity.exists())) return notFound(c, 'Member not found');
-    const member = await memberEntity.getState();
-    if (member.role !== 'admin') return bad(c, 'Only admins can change their password.');
-    const oldPasswordHash = await hashPassword(oldPassword);
-    if (member.password !== oldPasswordHash) {
-      return bad(c, 'Incorrect old password');
-    }
-    const newPasswordHash = await hashPassword(newPassword);
-    await memberEntity.patch({ password: newPasswordHash });
-    return ok(c, { success: true });
-  });
   // MESS SETTINGS
   app.post('/api/mess/init', async (c) => {
     const { standardContribution, reducedContribution, totalDays, resetData } = await c.req.json();
@@ -82,7 +65,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         metadata: { standardContribution, reducedContribution, totalDays },
       });
       // 2. Recalculate contributions for all members
-      const allMembers: Member[] = await listAll(MemberEntity, c.env);
+      const allMembers: Member[] = await listAll<Member>(MemberEntity, c.env);
       for (const member of allMembers) {
         const memberEntity = new MemberEntity(c.env, member.id);
         const memberDays = member.days ?? totalDays;
@@ -96,7 +79,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/mess/state', async (c) => {
     const settings = new MessSettingsEntity(c.env);
     const state = await settings.getState();
-    const members: Member[] = await listAll(MemberEntity, c.env);
+    const members: Member[] = await listAll<Member>(MemberEntity, c.env);
     const expenses = await listAll<Expense>(ExpenseEntity, c.env);
     const auditLogs = await listAll<AuditLog>(AuditLogEntity, c.env);
     // Strip passwords before sending to client
@@ -108,7 +91,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // MEMBERS
   app.get('/api/members', async (c) => {
-    let members: Member[] = await listAll(MemberEntity, c.env);
+    let members: Member[] = await listAll<Member>(MemberEntity, c.env);
     if (members.length === 0) {
       const settings = await new MessSettingsEntity(c.env).getState();
       const mockMembersData: { name: string; type: MemberType, role: 'admin' | 'member' }[] = [
@@ -130,7 +113,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         alice.password = await hashPassword('password');
       }
       await Promise.all(newMembers.map((m) => MemberEntity.create(c.env, m)));
-      members = await listAll(MemberEntity, c.env); // Re-fetch to get the created members
+      members = await listAll<Member>(MemberEntity, c.env); // Re-fetch to get the created members
     }
     // Strip passwords before sending to client
     const membersWithoutPasswords = members.map(m => {
@@ -223,6 +206,22 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const updatedMember = await memberEntity.getState();
     const { password: _, ...memberWithoutPassword } = updatedMember;
     return ok(c, memberWithoutPassword);
+  });
+  app.put('/api/members/:id/password', async (c) => {
+    const id = c.req.param('id');
+    const { password } = await c.req.json<{ password?: string }>();
+    if (!password) {
+      return bad(c, 'New password is required');
+    }
+    const memberEntity = new MemberEntity(c.env, id);
+    if (!(await memberEntity.exists())) return notFound(c, 'Member not found');
+    const member = await memberEntity.getState();
+    if (member.role !== 'admin') {
+      return bad(c, 'Can only reset passwords for admin members.');
+    }
+    const newPasswordHash = await hashPassword(password);
+    await memberEntity.patch({ password: newPasswordHash });
+    return ok(c, { success: true });
   });
   app.delete('/api/members/:id', async (c) => {
     const id = c.req.param('id');
