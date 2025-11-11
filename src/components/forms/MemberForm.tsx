@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api-client';
@@ -87,35 +87,39 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="days"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Days</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="e.g., 30" {...field} value={field.value ?? ''} />
+              </FormControl>
+              <FormDescription>
+                Contribution is auto-calculated based on this. Leave blank for the full month.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         {isEditMode && (
-          <>
-            <FormField
-              control={form.control}
-              name="contribution"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contribution (AED)</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g., 450" {...field} value={field.value ?? ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="days"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Days</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g., 30" {...field} value={field.value ?? ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
+          <FormField
+            control={form.control}
+            name="contribution"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contribution (AED)</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 450" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormDescription>
+                  This is a manual override. The contribution will be recalculated if you change Type or Days.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         )}
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending ? 'Saving...' : (isEditMode ? 'Update Member' : 'Save Member')}
