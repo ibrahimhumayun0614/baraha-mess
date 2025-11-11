@@ -17,6 +17,7 @@ interface MessState {
   settings: MessSettings;
   members: Member[];
   expenses: Expense[];
+  auditLogs: AuditLog[];
 }
 interface MemberDashboardProps {
   messState: MessState;
