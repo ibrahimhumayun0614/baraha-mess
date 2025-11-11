@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Trash2, ShieldCheck, UserCheck, Share2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, ShieldCheck, UserCheck, Share2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Table,
@@ -29,8 +29,9 @@ interface MembersTableProps {
   isSuperAdmin?: boolean;
   onToggleAdmin?: (args: { memberId: string; newRole: 'admin' | 'member' }) => void;
   onPromote?: (member: Member) => void;
+  onResetPassword?: (member: Member) => void;
 }
-const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, onPromote }: MembersTableProps) => {
+const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, onPromote, onResetPassword }: MembersTableProps) => {
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(amount);
   const handleShareLogin = (memberId: string) => {
     const url = `${window.location.origin}/login/${memberId}`;
@@ -96,7 +97,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
                         <Share2 className="mr-2 h-4 w-4" />
                         <span>Share Login</span>
                       </DropdownMenuItem>
-                      {isSuperAdmin && onToggleAdmin && (
+                      {isSuperAdmin && (
                         <>
                           <DropdownMenuSeparator />
                           {member.role === 'member' ? (
@@ -105,10 +106,16 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
                               <span>Promote to Admin</span>
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem onClick={() => onToggleAdmin({ memberId: member.id, newRole: 'member' })}>
-                              <UserCheck className="mr-2 h-4 w-4" />
-                              <span>Demote to Member</span>
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem onClick={() => onToggleAdmin?.({ memberId: member.id, newRole: 'member' })}>
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                <span>Demote to Member</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => onResetPassword?.(member)}>
+                                <KeyRound className="mr-2 h-4 w-4" />
+                                <span>Reset Password</span>
+                              </DropdownMenuItem>
+                            </>
                           )}
                         </>
                       )}
