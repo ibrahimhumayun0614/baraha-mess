@@ -1,16 +1,11 @@
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import type { Member, Expense, AuditLog } from '@shared/types';
+import type { Member, Expense } from '@shared/types';
 interface MemberWithBalance extends Member {
   totalExpenses: number;
   balance: number;
 }
-type AuditLogMutation = (log: Partial<AuditLog>) => void;
-export const exportAdminReport = (
-  members: MemberWithBalance[],
-  expenses: Expense[],
-  createAuditLog: AuditLogMutation
-) => {
+export const exportAdminReport = (members: MemberWithBalance[], expenses: Expense[]) => {
   const wb = XLSX.utils.book_new();
   // Members Sheet
   const membersData = members.map(m => ({
@@ -34,15 +29,10 @@ export const exportAdminReport = (
   const expensesWs = XLSX.utils.json_to_sheet(expensesData);
   XLSX.utils.book_append_sheet(wb, expensesWs, 'All Expenses');
   // Download
-  const fileName = `Baraha_Mess_Admin_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  const fileName = `DineFlow_Admin_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
   XLSX.writeFile(wb, fileName);
-  createAuditLog({ event: 'report_download' });
 };
-export const exportMemberReport = (
-  member: MemberWithBalance,
-  expenses: Expense[],
-  createAuditLog: AuditLogMutation
-) => {
+export const exportMemberReport = (member: MemberWithBalance, expenses: Expense[]) => {
   const wb = XLSX.utils.book_new();
   // Summary Sheet
   const summaryData = [{
@@ -63,23 +53,6 @@ export const exportMemberReport = (
   const expensesWs = XLSX.utils.json_to_sheet(expensesData);
   XLSX.utils.book_append_sheet(wb, expensesWs, 'My Expenses');
   // Download
-  const fileName = `Baraha_Mess_${member.name}_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-  XLSX.writeFile(wb, fileName);
-  createAuditLog({ event: 'report_download' });
-};
-export const exportAuditLogs = (logs: AuditLog[]) => {
-  const wb = XLSX.utils.book_new();
-  const formatEvent = (event: string) => {
-    return event.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-  const logsData = logs.map(log => ({
-    Event: formatEvent(log.event),
-    User: log.userName,
-    Timestamp: format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss'),
-    Details: JSON.stringify(log.metadata) || log.deviceInfo,
-  }));
-  const logsWs = XLSX.utils.json_to_sheet(logsData);
-  XLSX.utils.book_append_sheet(wb, logsWs, 'Audit Logs');
-  const fileName = `Baraha_Mess_Audit_Logs_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  const fileName = `DineFlow_${member.name}_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
   XLSX.writeFile(wb, fileName);
 };
