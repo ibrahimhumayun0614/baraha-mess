@@ -25,12 +25,13 @@ interface ExpenseFormProps {
 }
 const ExpenseForm = ({ members, onSuccess }: ExpenseFormProps) => {
   const queryClient = useQueryClient();
-  const { role, member: loggedInMember } = useAuthStore((state) => ({ role: state.role, member: state.member }));
+  const role = useAuthStore((state) => state.role);
+  const loggedInMember = useAuthStore((state) => state.member);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       memberId: role === 'member' ? loggedInMember?.id : '',
-      amount: 0,
+      amount: undefined, // Use undefined for placeholder to show
       date: format(new Date(), 'yyyy-MM-dd'),
       note: '',
     },
