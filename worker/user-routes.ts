@@ -18,8 +18,8 @@ async function listAll<T extends { id: string }>(
   } while (cursor);
   return allItems;
 }
-// Updated super admin password to 'Muhammed97@#'
-const SUPER_ADMIN_PASSWORD_HASH = 'b2e909512216d362dececcda68d4ed4b77a7413e1a80e8154b84ddac2fd533dd';
+// Fallback super admin password for initial setup
+const SUPER_ADMIN_PASSWORD_HASH = 'b2e909512216d362dececcda68d4ed4b77a7413e1a80e8154b84ddac2fd533dd'; // Muhammed97@#
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // AUTH
   app.post('/api/auth/login', async (c) => {
@@ -27,7 +27,9 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!password) return bad(c, 'Password is required');
     const passwordHash = await hashPassword(password);
     if (role === 'super_admin') {
-      if (passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
+      const settings = await new MessSettingsEntity(c.env).getState();
+      const currentHash = settings.superAdminPasswordHash || SUPER_ADMIN_PASSWORD_HASH;
+      if (passwordHash === currentHash) {
         return ok(c, { role: 'admin', member: null });
       }
       return bad(c, 'Invalid credentials');
@@ -44,6 +46,22 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       return bad(c, 'Invalid credentials');
     }
     return bad(c, 'Invalid login request');
+  });
+  app.post('/api/auth/super-admin/change-password', async (c) => {
+    const { oldPassword, newPassword } = await c.req.json<{ oldPassword?: string, newPassword?: string }>();
+    if (!oldPassword || !newPassword) {
+      return bad(c, 'Old and new passwords are required');
+    }
+    const settingsEntity = new MessSettingsEntity(c.env);
+    const settings = await settingsEntity.getState();
+    const currentHash = settings.superAdminPasswordHash || SUPER_ADMIN_PASSWORD_HASH;
+    const oldPasswordHash = await hashPassword(oldPassword);
+    if (oldPasswordHash !== currentHash) {
+      return bad(c, 'Incorrect old password');
+    }
+    const newPasswordHash = await hashPassword(newPassword);
+    await settingsEntity.patch({ superAdminPasswordHash: newPasswordHash });
+    return ok(c, { success: true });
   });
   // MESS SETTINGS
   app.post('/api/mess/init', async (c) => {
@@ -65,7 +83,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         metadata: { standardContribution, reducedContribution, totalDays },
       });
       // 2. Recalculate contributions for all members
-      const allMembers: Member[] = await listAll<Member>(MemberEntity, c.env);
+      const allMembers = await listAll<Member>(MemberEntity, c.env);
       for (const member of allMembers) {
         const memberEntity = new MemberEntity(c.env, member.id);
         const memberDays = member.days ?? totalDays;
@@ -79,7 +97,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/mess/state', async (c) => {
     const settings = new MessSettingsEntity(c.env);
     const state = await settings.getState();
-    const members: Member[] = await listAll<Member>(MemberEntity, c.env);
+    const members = await listAll<Member>(MemberEntity, c.env);
     const expenses = await listAll<Expense>(ExpenseEntity, c.env);
     const auditLogs = await listAll<AuditLog>(AuditLogEntity, c.env);
     // Strip passwords before sending to client
@@ -91,7 +109,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // MEMBERS
   app.get('/api/members', async (c) => {
-    let members: Member[] = await listAll<Member>(MemberEntity, c.env);
+    let members = await listAll<Member>(MemberEntity, c.env);
     if (members.length === 0) {
       const settings = await new MessSettingsEntity(c.env).getState();
       const mockMembersData: { name: string; type: MemberType, role: 'admin' | 'member' }[] = [
