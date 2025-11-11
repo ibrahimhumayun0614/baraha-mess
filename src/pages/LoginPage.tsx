@@ -146,17 +146,17 @@ export function LoginPage() {
     </div>
   );
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:px-6 lg:px-8">
       <Toaster richColors />
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center mb-8">
         <div className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-4 mb-4 shadow-lg">
           <UtensilsCrossed className="w-10 h-10" />
         </div>
-        <h1 className="text-5xl font-bold text-gray-800">DineFlow</h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-800">DineFlow</h1>
         <p className="text-muted-foreground mt-2">Effortless Mess Management</p>
       </motion.div>
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
-        <Card className="w-full max-w-md shadow-xl">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="w-full sm:max-w-md">
+        <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl text-center">Select Your Role</CardTitle>
             <CardDescription className="text-center">Choose your access level to continue.</CardDescription>
@@ -167,7 +167,7 @@ export function LoginPage() {
         </Card>
       </motion.div>
       <footer className="absolute bottom-4 text-center text-muted-foreground/80 text-sm">
-        <p>Built with ���️ at Cloudflare</p>
+        <p>Built with ❤️ at Cloudflare</p>
       </footer>
     </div>
   );

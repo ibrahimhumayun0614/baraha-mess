@@ -44,7 +44,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
       });
   };
   return (
-    <div className="rounded-lg border">
+    <div className="rounded-lg border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -62,7 +62,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
           {members.length > 0 ? (
             members.map((member) => (
               <TableRow key={member.id}>
-                <TableCell className="font-medium">{member.name}</TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{member.name}</TableCell>
                 <TableCell>
                   <Badge variant={member.type === 'standard' ? 'default' : 'secondary'}>
                     {member.type}
@@ -74,9 +74,9 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
                   </Badge>
                 </TableCell>
                 <TableCell>{member.days ?? 'N/A'}</TableCell>
-                <TableCell className="text-right">{formatCurrency(member.contribution)}</TableCell>
-                <TableCell className="text-right">{formatCurrency(member.totalExpenses)}</TableCell>
-                <TableCell className={`text-right font-semibold ${member.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <TableCell className="text-right whitespace-nowrap">{formatCurrency(member.contribution)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">{formatCurrency(member.totalExpenses)}</TableCell>
+                <TableCell className={`text-right font-semibold whitespace-nowrap ${member.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatCurrency(member.balance)}
                 </TableCell>
                 <TableCell className="text-right">
