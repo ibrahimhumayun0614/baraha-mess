@@ -39,7 +39,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
       toast.error(`Failed to save settings: ${error.message}`);
     },
   });
-  function onSubmit(values: FormValues) {
+  function onSubmit(values: z.infer<typeof SetupMessFormSchema>) {
     mutation.mutate(values);
   }
   return (
@@ -52,7 +52,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
             <FormItem>
               <FormLabel>Standard Contribution (AED)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 450" {...field} />
+                <Input type="number" placeholder="e.g., 450" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -65,7 +65,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
             <FormItem>
               <FormLabel>Reduced Contribution (AED)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 250" {...field} />
+                <Input type="number" placeholder="e.g., 250" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -78,7 +78,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
             <FormItem>
               <FormLabel>Total Mess Days</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 30" {...field} />
+                <Input type="number" placeholder="e.g., 30" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>

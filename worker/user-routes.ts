@@ -3,7 +3,34 @@ import type { Env } from './core-utils';
 import { MessSettingsEntity, MemberEntity, ExpenseEntity, AuditLogEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
 import type { Member, MemberType, Expense, AuditLog } from "@shared/types";
+import { hashPassword } from "./auth-utils";
+// In a real application, this would be a secret managed by Wrangler secrets.
+const SUPER_ADMIN_PASSWORD_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // "password"
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
+  // AUTH
+  app.post('/api/auth/login', async (c) => {
+    const { role, password, memberId } = await c.req.json<{ role: 'super_admin' | 'admin', password?: string, memberId?: string }>();
+    if (!password) return bad(c, 'Password is required');
+    const passwordHash = await hashPassword(password);
+    if (role === 'super_admin') {
+      if (passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
+        return ok(c, { role: 'admin', member: null });
+      }
+      return bad(c, 'Invalid credentials');
+    }
+    if (role === 'admin' && memberId) {
+      const memberEntity = new MemberEntity(c.env, memberId);
+      if (!(await memberEntity.exists())) return notFound(c, 'Member not found');
+      const member = await memberEntity.getState();
+      if (member.role !== 'admin') return bad(c, 'Member is not an admin');
+      if (member.password === passwordHash) {
+        const { password, ...memberWithoutPassword } = member;
+        return ok(c, { role: 'admin', member: memberWithoutPassword });
+      }
+      return bad(c, 'Invalid credentials');
+    }
+    return bad(c, 'Invalid login request');
+  });
   // MESS SETTINGS
   app.post('/api/mess/init', async (c) => {
     const { standardContribution, reducedContribution, totalDays } = await c.req.json();
@@ -19,7 +46,12 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const state = await settings.getState();
     const members = await MemberEntity.list(c.env);
     const expenses = await ExpenseEntity.list(c.env);
-    return ok(c, { settings: state, members: members.items, expenses: expenses.items });
+    // Strip passwords before sending to client
+    const membersWithoutPasswords = members.items.map(m => {
+      const { password, ...rest } = m;
+      return rest;
+    });
+    return ok(c, { settings: state, members: membersWithoutPasswords, expenses: expenses.items });
   });
   // MEMBERS
   app.get('/api/members', async (c) => {
@@ -38,10 +70,20 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         role: m.role,
         contribution: m.type === 'standard' ? settings.standardContribution : settings.reducedContribution,
       }));
+      // Set a default password for the mock admin
+      const alice = newMembers.find(m => m.name === 'Alice');
+      if (alice) {
+        alice.password = await hashPassword('password');
+      }
       await Promise.all(newMembers.map((m) => MemberEntity.create(c.env, m)));
       page = await MemberEntity.list(c.env); // Re-fetch to get the created members
     }
-    return ok(c, page.items);
+    // Strip passwords before sending to client
+    const membersWithoutPasswords = page.items.map(m => {
+      const { password, ...rest } = m;
+      return rest;
+    });
+    return ok(c, membersWithoutPasswords);
   });
   app.post('/api/members', async (c) => {
     const { name, type } = (await c.req.json()) as { name?: string; type?: MemberType };
@@ -90,19 +132,29 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       deviceInfo: c.req.header('User-Agent') || 'Unknown',
       metadata: { memberId: newMember.id, changes: updatePayload },
     });
-    return ok(c, newMember);
+    const { password, ...memberWithoutPassword } = newMember;
+    return ok(c, memberWithoutPassword);
   });
   app.put('/api/members/:id/role', async (c) => {
     const id = c.req.param('id');
-    const { role } = (await c.req.json()) as { role: 'admin' | 'member' };
+    const { role, password } = (await c.req.json()) as { role: 'admin' | 'member', password?: string };
     if (!['admin', 'member'].includes(role)) {
       return bad(c, 'Invalid role specified');
     }
     const memberEntity = new MemberEntity(c.env, id);
     if (!(await memberEntity.exists())) return notFound(c, 'Member not found');
-    await memberEntity.patch({ role });
+    const updatePayload: Partial<Member> = { role };
+    if (role === 'admin') {
+      if (!password) return bad(c, 'Password is required to promote to admin');
+      updatePayload.password = await hashPassword(password);
+    } else {
+      // When demoting, remove the password
+      updatePayload.password = undefined;
+    }
+    await memberEntity.patch(updatePayload);
     const updatedMember = await memberEntity.getState();
-    return ok(c, updatedMember);
+    const { password: _, ...memberWithoutPassword } = updatedMember;
+    return ok(c, memberWithoutPassword);
   });
   app.delete('/api/members/:id', async (c) => {
     const id = c.req.param('id');
