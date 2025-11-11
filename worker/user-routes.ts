@@ -33,6 +33,15 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const contribution = type === 'standard' ? settings.standardContribution : settings.reducedContribution;
     const member: Member = { id: crypto.randomUUID(), name, type: type!, contribution };
     await MemberEntity.create(c.env, member);
+    await AuditLogEntity.create(c.env, {
+      id: crypto.randomUUID(),
+      event: 'member_created',
+      userId: 'admin',
+      userName: 'Admin',
+      timestamp: new Date().toISOString(),
+      deviceInfo: c.req.header('User-Agent') || 'Unknown',
+      metadata: { memberId: member.id, name: member.name },
+    });
     return ok(c, member);
   });
   app.put('/api/members/:id', async (c) => {
@@ -43,23 +52,46 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }
     const memberEntity = new MemberEntity(c.env, id);
     if (!(await memberEntity.exists())) return notFound(c, 'Member not found');
+    const oldMember = await memberEntity.getState();
     const updatePayload: Partial<Member> = {};
     if (name) updatePayload.name = name;
     if (type) updatePayload.type = type;
-    // Allow manual override of contribution
     if (typeof contribution === 'number') {
       updatePayload.contribution = contribution;
-    } else if (type) {
-      // If type is changed but not contribution, recalculate contribution
+    } else if (type && type !== oldMember.type) {
       const settings = await new MessSettingsEntity(c.env).getState();
       updatePayload.contribution = type === 'standard' ? settings.standardContribution : settings.reducedContribution;
     }
     await memberEntity.patch(updatePayload);
-    return ok(c, await memberEntity.getState());
+    const newMember = await memberEntity.getState();
+    await AuditLogEntity.create(c.env, {
+      id: crypto.randomUUID(),
+      event: 'member_updated',
+      userId: 'admin',
+      userName: 'Admin',
+      timestamp: new Date().toISOString(),
+      deviceInfo: c.req.header('User-Agent') || 'Unknown',
+      metadata: { memberId: newMember.id, changes: updatePayload },
+    });
+    return ok(c, newMember);
   });
   app.delete('/api/members/:id', async (c) => {
     const id = c.req.param('id');
+    const memberEntity = new MemberEntity(c.env, id);
+    if (!(await memberEntity.exists())) return notFound(c, 'Member not found');
+    const member = await memberEntity.getState();
     const deleted = await MemberEntity.delete(c.env, id);
+    if (deleted) {
+      await AuditLogEntity.create(c.env, {
+        id: crypto.randomUUID(),
+        event: 'member_deleted',
+        userId: 'admin',
+        userName: 'Admin',
+        timestamp: new Date().toISOString(),
+        deviceInfo: c.req.header('User-Agent') || 'Unknown',
+        metadata: { memberId: member.id, name: member.name },
+      });
+    }
     return ok(c, { id, deleted });
   });
   // EXPENSES
@@ -74,9 +106,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }
     const expense: Expense = { id: crypto.randomUUID(), memberId, amount, date, note, deviceInfo };
     await ExpenseEntity.create(c.env, expense);
-    // Audit Log
     const member = await new MemberEntity(c.env, memberId).getState();
-    const auditLog: AuditLog = {
+    await AuditLogEntity.create(c.env, {
       id: crypto.randomUUID(),
       event: 'expense_created',
       userId: memberId,
@@ -84,8 +115,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       timestamp: new Date().toISOString(),
       deviceInfo,
       metadata: { expenseId: expense.id, amount: expense.amount },
-    };
-    await AuditLogEntity.create(c.env, auditLog);
+    });
     return ok(c, expense);
   });
   app.put('/api/expenses/:id', async (c) => {
@@ -98,11 +128,37 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (isStr(date)) updatePayload.date = date;
     if (note !== undefined) updatePayload.note = note;
     await expenseEntity.patch(updatePayload);
-    return ok(c, await expenseEntity.getState());
+    const updatedExpense = await expenseEntity.getState();
+    const member = await new MemberEntity(c.env, updatedExpense.memberId).getState();
+    await AuditLogEntity.create(c.env, {
+      id: crypto.randomUUID(),
+      event: 'expense_updated',
+      userId: 'admin',
+      userName: 'Admin',
+      timestamp: new Date().toISOString(),
+      deviceInfo: c.req.header('User-Agent') || 'Unknown',
+      metadata: { expenseId: updatedExpense.id, memberName: member.name, changes: updatePayload },
+    });
+    return ok(c, updatedExpense);
   });
   app.delete('/api/expenses/:id', async (c) => {
     const id = c.req.param('id');
+    const expenseEntity = new ExpenseEntity(c.env, id);
+    if (!(await expenseEntity.exists())) return notFound(c, 'Expense not found');
+    const expense = await expenseEntity.getState();
     const deleted = await ExpenseEntity.delete(c.env, id);
+    if (deleted) {
+      const member = await new MemberEntity(c.env, expense.memberId).getState();
+      await AuditLogEntity.create(c.env, {
+        id: crypto.randomUUID(),
+        event: 'expense_deleted',
+        userId: 'admin',
+        userName: 'Admin',
+        timestamp: new Date().toISOString(),
+        deviceInfo: c.req.header('User-Agent') || 'Unknown',
+        metadata: { expenseId: expense.id, amount: expense.amount, memberName: member.name },
+      });
+    }
     return ok(c, { id, deleted });
   });
   // AUDIT LOGS
