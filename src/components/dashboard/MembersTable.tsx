@@ -51,7 +51,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
             <TableHead>Name</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Role</TableHead>
-            <TableHead>Days Eaten</TableHead>
+            <TableHead>Days</TableHead>
             <TableHead className="text-right">Contribution</TableHead>
             <TableHead className="text-right">Expenses</TableHead>
             <TableHead className="text-right">Balance</TableHead>
@@ -73,7 +73,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
                     {member.role}
                   </Badge>
                 </TableCell>
-                <TableCell>{member.daysEaten ?? 'N/A'}</TableCell>
+                <TableCell>{member.days ?? 'N/A'}</TableCell>
                 <TableCell className="text-right">{formatCurrency(member.contribution)}</TableCell>
                 <TableCell className="text-right">{formatCurrency(member.totalExpenses)}</TableCell>
                 <TableCell className={`text-right font-semibold ${member.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
