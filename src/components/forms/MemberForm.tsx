@@ -13,7 +13,7 @@ const MemberFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   type: z.enum(['standard', 'reduced']),
   contribution: z.coerce.number().min(0, 'Contribution must be a positive number').optional(),
-  daysEaten: z.coerce.number().int().min(0, 'Must be a positive number').optional(),
+  days: z.coerce.number().int().min(0, 'Must be a positive number').optional(),
 });
 type FormValues = z.infer<typeof MemberFormSchema>;
 interface MemberFormProps {
@@ -29,7 +29,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
       name: member?.name || '',
       type: member?.type || 'standard',
       contribution: member?.contribution,
-      daysEaten: member?.daysEaten,
+      days: member?.days,
     },
   });
   const mutation = useMutation({
@@ -104,10 +104,10 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
             />
             <FormField
               control={form.control}
-              name="daysEaten"
+              name="days"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Days Eaten</FormLabel>
+                  <FormLabel>Days</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="e.g., 30" {...field} value={field.value ?? ''} />
                   </FormControl>
