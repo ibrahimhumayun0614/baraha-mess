@@ -16,7 +16,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ role: null, member: null }),
     }),
     {
-      name: 'baraha-mess-auth-storage',
+      name: 'dineflow-auth-storage',
       storage: createJSONStorage(() => sessionStorage),
     }
   )
