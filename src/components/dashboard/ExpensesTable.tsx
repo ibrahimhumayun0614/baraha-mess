@@ -27,7 +27,7 @@ const ExpensesTable = ({ expenses, members, onEdit, onDelete }: ExpensesTablePro
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(amount);
   const hasActions = !!onEdit || !!onDelete;
   return (
-    <div className="rounded-lg border">
+    <div className="rounded-lg border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -42,10 +42,10 @@ const ExpensesTable = ({ expenses, members, onEdit, onDelete }: ExpensesTablePro
           {expenses.length > 0 ? (
             expenses.map((expense) => (
               <TableRow key={expense.id}>
-                <TableCell className="font-medium">{memberMap.get(expense.memberId) || 'Unknown'}</TableCell>
-                <TableCell>{format(new Date(expense.date), 'PP')}</TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{memberMap.get(expense.memberId) || 'Unknown'}</TableCell>
+                <TableCell className="whitespace-nowrap">{format(new Date(expense.date), 'PP')}</TableCell>
                 <TableCell className="text-muted-foreground">{expense.note || '-'}</TableCell>
-                <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">{formatCurrency(expense.amount)}</TableCell>
                 {hasActions && (
                   <TableCell className="text-right">
                     <DropdownMenu>

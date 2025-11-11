@@ -94,7 +94,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
             <FormItem>
               <FormLabel>Days</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 30" {...field} value={field.value ?? ''} />
+                <Input type="number" placeholder="e.g., 30" {...field} value={String(field.value ?? '')} />
               </FormControl>
               <FormDescription>
                 Contribution is auto-calculated based on this. Leave blank for the full month.
@@ -111,7 +111,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
               <FormItem>
                 <FormLabel>Contribution (AED)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 450" {...field} value={field.value ?? ''} />
+                  <Input type="number" placeholder="e.g., 450" {...field} value={String(field.value ?? '')} />
                 </FormControl>
                 <FormDescription>
                   This is a manual override. The contribution will be recalculated if you change Type or Days.

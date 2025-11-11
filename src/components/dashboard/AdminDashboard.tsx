@@ -100,15 +100,15 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
   };
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <DashboardActions settings={messState?.settings} members={messState?.members || []} />
-        <div className="flex flex-col items-end space-y-2 mt-4 ml-4">
-          <Button onClick={handleDownloadReport} variant="outline">
+        <div className="flex flex-col items-stretch sm:items-end space-y-2 w-full md:w-auto">
+          <Button onClick={handleDownloadReport} variant="outline" className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
             Download Report
           </Button>
           {adminUser && (
-            <Button onClick={() => setChangePasswordOpen(true)} variant="secondary">
+            <Button onClick={() => setChangePasswordOpen(true)} variant="secondary" className="w-full sm:w-auto">
               <KeyRound className="mr-2 h-4 w-4" />
               Change Password
             </Button>
@@ -116,7 +116,7 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
         </div>
       </div>
       <motion.div
-        className="grid gap-6 md:grid-cols-2 lg:grid-cols-5 mt-8"
+        className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mt-8"
         initial="hidden"
         animate="visible"
         variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
