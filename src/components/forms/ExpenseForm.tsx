@@ -92,7 +92,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
             <FormItem>
               <FormLabel>Amount (AED)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="e.g., 50.75" {...field} value={field.value ?? ''} />
+                <Input type="number" step="0.01" placeholder="e.g., 50.75" {...field} value={String(field.value ?? '')} />
               </FormControl>
               <FormMessage />
             </FormItem>

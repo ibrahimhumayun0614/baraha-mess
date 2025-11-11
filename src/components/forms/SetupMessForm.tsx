@@ -52,7 +52,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
             <FormItem>
               <FormLabel>Standard Contribution (AED)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 450" {...field} value={field.value ?? ''} />
+                <Input type="number" placeholder="e.g., 450" {...field} value={String(field.value ?? '')} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -65,7 +65,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
             <FormItem>
               <FormLabel>Reduced Contribution (AED)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 250" {...field} value={field.value ?? ''} />
+                <Input type="number" placeholder="e.g., 250" {...field} value={String(field.value ?? '')} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -78,7 +78,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
             <FormItem>
               <FormLabel>Total Mess Days</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 30" {...field} value={field.value ?? ''} />
+                <Input type="number" placeholder="e.g., 30" {...field} value={String(field.value ?? '')} />
               </FormControl>
               <FormMessage />
             </FormItem>
