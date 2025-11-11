@@ -23,7 +23,25 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // MEMBERS
   app.get('/api/members', async (c) => {
-    const page = await MemberEntity.list(c.env);
+    let page = await MemberEntity.list(c.env);
+    if (page.items.length === 0) {
+      const settings = await new MessSettingsEntity(c.env).getState();
+      const mockMembersData: { name: string; type: MemberType }[] = [
+        { name: 'Alice', type: 'standard' },
+        { name: 'Bob', type: 'standard' },
+        { name: 'Charlie', type: 'reduced' },
+      ];
+
+      const newMembers: Member[] = mockMembersData.map((m) => ({
+        id: crypto.randomUUID(),
+        name: m.name,
+        type: m.type,
+        contribution: m.type === 'standard' ? settings.standardContribution : settings.reducedContribution,
+      }));
+
+      await Promise.all(newMembers.map((m) => MemberEntity.create(c.env, m)));
+      page = await MemberEntity.list(c.env); // Re-fetch to get the created members
+    }
     return ok(c, page.items);
   });
   app.post('/api/members', async (c) => {
