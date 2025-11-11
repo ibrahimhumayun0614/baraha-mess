@@ -31,6 +31,23 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }
     return bad(c, 'Invalid login request');
   });
+  app.post('/api/auth/change-password', async (c) => {
+    const { memberId, oldPassword, newPassword } = await c.req.json<{ memberId: string, oldPassword?: string, newPassword?: string }>();
+    if (!memberId || !oldPassword || !newPassword) {
+      return bad(c, 'Member ID, old password, and new password are required');
+    }
+    const memberEntity = new MemberEntity(c.env, memberId);
+    if (!(await memberEntity.exists())) return notFound(c, 'Member not found');
+    const member = await memberEntity.getState();
+    if (member.role !== 'admin') return bad(c, 'Only admins can change their password.');
+    const oldPasswordHash = await hashPassword(oldPassword);
+    if (member.password !== oldPasswordHash) {
+      return bad(c, 'Incorrect old password');
+    }
+    const newPasswordHash = await hashPassword(newPassword);
+    await memberEntity.patch({ password: newPasswordHash });
+    return ok(c, { success: true });
+  });
   // MESS SETTINGS
   app.post('/api/mess/init', async (c) => {
     const { standardContribution, reducedContribution, totalDays } = await c.req.json();
@@ -69,6 +86,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         type: m.type,
         role: m.role,
         contribution: m.type === 'standard' ? settings.standardContribution : settings.reducedContribution,
+        daysEaten: settings.totalDays,
       }));
       // Set a default password for the mock admin
       const alice = newMembers.find(m => m.name === 'Alice');
@@ -90,7 +108,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!isStr(name) || !['standard', 'reduced'].includes(type!)) return bad(c, 'Name and type are required');
     const settings = await new MessSettingsEntity(c.env).getState();
     const contribution = type === 'standard' ? settings.standardContribution : settings.reducedContribution;
-    const member: Member = { id: crypto.randomUUID(), name, type: type!, contribution, role: 'member' };
+    const member: Member = { id: crypto.randomUUID(), name, type: type!, contribution, role: 'member', daysEaten: settings.totalDays };
     await MemberEntity.create(c.env, member);
     await AuditLogEntity.create(c.env, {
       id: crypto.randomUUID(),
@@ -105,9 +123,9 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   app.put('/api/members/:id', async (c) => {
     const id = c.req.param('id');
-    const { name, type, contribution } = (await c.req.json()) as Partial<Member>;
-    if (!isStr(name) && !isStr(type) && typeof contribution !== 'number') {
-      return bad(c, 'At least one field (name, type, contribution) is required');
+    const { name, type, contribution, daysEaten } = (await c.req.json()) as Partial<Member>;
+    if (!isStr(name) && !isStr(type) && typeof contribution !== 'number' && typeof daysEaten !== 'number') {
+      return bad(c, 'At least one field is required');
     }
     const memberEntity = new MemberEntity(c.env, id);
     if (!(await memberEntity.exists())) return notFound(c, 'Member not found');
@@ -121,6 +139,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       const settings = await new MessSettingsEntity(c.env).getState();
       updatePayload.contribution = type === 'standard' ? settings.standardContribution : settings.reducedContribution;
     }
+    if (typeof daysEaten === 'number') updatePayload.daysEaten = daysEaten;
     await memberEntity.patch(updatePayload);
     const newMember = await memberEntity.getState();
     await AuditLogEntity.create(c.env, {

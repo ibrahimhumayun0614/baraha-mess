@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
-import { DollarSign, ShoppingCart, Wallet, PlusCircle, Download } from 'lucide-react';
+import { DollarSign, ShoppingCart, Wallet, PlusCircle, Download, TrendingUp } from 'lucide-react';
 import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
@@ -28,11 +28,16 @@ const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
     mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
     onError: (err) => console.error("Failed to create audit log:", err),
   });
-  const { myExpenses, myTotalSpent, myBalance } = useMemo(() => {
+  const { myExpenses, myTotalSpent, myBalance, adjustedDailyRate } = useMemo(() => {
     const myExpenses = messState.expenses.filter(e => e.memberId === currentUser.id);
     const myTotalSpent = myExpenses.reduce((sum, e) => sum + e.amount, 0);
     const myBalance = currentUser.contribution - myTotalSpent;
-    return { myExpenses, myTotalSpent, myBalance };
+    const totalContribution = messState.members.reduce((sum, m) => sum + m.contribution, 0);
+    const totalSpent = messState.expenses.reduce((sum, e) => sum + e.amount, 0);
+    const balance = totalContribution - totalSpent;
+    const remainingDays = messState.settings.totalDays - (new Date().getDate() - 1);
+    const adjustedDailyRate = remainingDays > 0 ? balance / remainingDays : 0;
+    return { myExpenses, myTotalSpent, myBalance, adjustedDailyRate };
   }, [messState, currentUser]);
   const handleDownloadReport = () => {
     try {
@@ -84,7 +89,7 @@ const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
         </div>
       </div>
       <motion.div
-        className="grid gap-6 md:grid-cols-3 mt-8"
+        className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-8"
         initial="hidden"
         animate="visible"
         variants={{
@@ -95,6 +100,7 @@ const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
         <StatCard title="My Contribution" value={currentUser.contribution} icon={DollarSign} formatAsCurrency />
         <StatCard title="My Total Spent" value={myTotalSpent} icon={ShoppingCart} formatAsCurrency />
         <StatCard title="My Remaining Balance" value={myBalance} icon={Wallet} formatAsCurrency isPositive={myBalance >= 0} />
+        <StatCard title="Adjusted Daily Rate" value={adjustedDailyRate} icon={TrendingUp} formatAsCurrency isPositive={adjustedDailyRate >= 0} />
       </motion.div>
       <div className="mt-10">
         <Card className="shadow-lg">

@@ -1,4 +1,5 @@
-import { MoreHorizontal, Pencil, Trash2, ShieldCheck, UserCheck } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, ShieldCheck, UserCheck, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -31,6 +32,17 @@ interface MembersTableProps {
 }
 const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, onPromote }: MembersTableProps) => {
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(amount);
+  const handleShareLogin = (memberId: string) => {
+    const url = `${window.location.origin}/login/${memberId}`;
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        toast.success('Login link copied to clipboard!');
+      })
+      .catch(err => {
+        toast.error('Failed to copy link.');
+        console.error('Could not copy text: ', err);
+      });
+  };
   return (
     <div className="rounded-lg border">
       <Table>
@@ -39,6 +51,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
             <TableHead>Name</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Days Eaten</TableHead>
             <TableHead className="text-right">Contribution</TableHead>
             <TableHead className="text-right">Expenses</TableHead>
             <TableHead className="text-right">Balance</TableHead>
@@ -60,6 +73,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
                     {member.role}
                   </Badge>
                 </TableCell>
+                <TableCell>{member.daysEaten ?? 'N/A'}</TableCell>
                 <TableCell className="text-right">{formatCurrency(member.contribution)}</TableCell>
                 <TableCell className="text-right">{formatCurrency(member.totalExpenses)}</TableCell>
                 <TableCell className={`text-right font-semibold ${member.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -77,6 +91,10 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
                       <DropdownMenuItem onClick={() => onEdit(member)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         <span>Edit</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleShareLogin(member.id)}>
+                        <Share2 className="mr-2 h-4 w-4" />
+                        <span>Share Login</span>
                       </DropdownMenuItem>
                       {isSuperAdmin && onToggleAdmin && (
                         <>
@@ -106,7 +124,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No members found.
               </TableCell>
             </TableRow>
