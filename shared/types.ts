@@ -9,6 +9,7 @@ export interface Member {
   name: string;
   type: MemberType;
   contribution: number;
+  role: 'admin' | 'member';
 }
 export interface Expense {
   id:string;

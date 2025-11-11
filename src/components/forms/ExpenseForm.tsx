@@ -30,7 +30,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
   const role = useAuthStore((state) => state.role);
   const loggedInMember = useAuthStore((state) => state.member);
   const isEditMode = !!expense;
-  const form = useForm<FormValues>({
+  const form = useForm({
     resolver: zodResolver(ExpenseFormSchema),
     defaultValues: {
       memberId: expense?.memberId || (role === 'member' ? loggedInMember?.id : ''),
