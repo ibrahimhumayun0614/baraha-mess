@@ -12,8 +12,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Toaster, toast } from 'sonner';
 export function LoginPage() {
   const navigate = useNavigate();
-  const login = useAuthStore((state) => state.login);
-  const role = useAuthStore((state) => state.role);
+  const { login, role } = useAuthStore();
   const { data: members, isLoading } = useQuery<Member[]>({
     queryKey: ['members'],
     queryFn: () => api('/api/members'),
@@ -24,7 +23,8 @@ export function LoginPage() {
   });
   useEffect(() => {
     if (role) {
-      navigate('/dashboard');
+      const destination = role === 'admin' ? '/admin/dashboard' : '/member/dashboard';
+      navigate(destination);
     }
   }, [role, navigate]);
   const handleLogin = (selectedRole: 'admin' | 'member', member?: Member) => {
@@ -36,7 +36,8 @@ export function LoginPage() {
       userName: member ? member.name : 'Admin',
       deviceInfo: getDeviceInfo(),
     });
-    navigate('/dashboard');
+    const destination = selectedRole === 'admin' ? '/admin/dashboard' : '/member/dashboard';
+    navigate(destination);
   };
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
@@ -100,7 +101,7 @@ export function LoginPage() {
         </Card>
       </motion.div>
       <footer className="absolute bottom-4 text-center text-muted-foreground/80 text-sm">
-        <p>Built with ��️ at Cloudflare</p>
+        <p>Built with ❤️ at Cloudflare</p>
       </footer>
     </div>
   );

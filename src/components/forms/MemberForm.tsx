@@ -12,8 +12,9 @@ import type { Member } from '@shared/types';
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   type: z.enum(['standard', 'reduced']),
-  contribution: z.coerce.number().min(0, 'Contribution must be a positive number'),
+  contribution: z.coerce.number().min(0, 'Contribution must be a positive number').optional(),
 });
+type FormValues = z.infer<typeof formSchema>;
 interface MemberFormProps {
   member?: Member;
   onSuccess: () => void;
@@ -21,7 +22,7 @@ interface MemberFormProps {
 const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
   const queryClient = useQueryClient();
   const isEditMode = !!member;
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: member?.name || '',
@@ -30,7 +31,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
     },
   });
   const mutation = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => {
+    mutationFn: (values: FormValues) => {
       const endpoint = isEditMode ? `/api/members/${member.id}` : '/api/members';
       const method = isEditMode ? 'PUT' : 'POST';
       return api(endpoint, { method, body: JSON.stringify(values) });
@@ -44,7 +45,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
       toast.error(`Failed to save member: ${error.message}`);
     },
   });
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: FormValues) {
     mutation.mutate(values);
   }
   return (

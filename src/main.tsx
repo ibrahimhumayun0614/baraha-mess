@@ -9,7 +9,9 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import '@/index.css';
 import { LoginPage } from '@/pages/LoginPage';
-import { DashboardPage } from '@/pages/DashboardPage';
+import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
+import { MemberDashboardPage } from '@/pages/MemberDashboardPage';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
@@ -18,8 +20,21 @@ const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
   },
   {
-    path: "/dashboard",
-    element: <DashboardPage />,
+    path: "/admin/dashboard",
+    element: (
+      <ProtectedRoute allowedRole="admin">
+        <AdminDashboardPage />
+      </ProtectedRoute>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/member/dashboard",
+    element: (
+      <ProtectedRoute allowedRole="member">
+        <MemberDashboardPage />
+      </ProtectedRoute>
+    ),
     errorElement: <RouteErrorBoundary />,
   },
 ]);

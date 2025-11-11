@@ -13,13 +13,14 @@ const formSchema = z.object({
   reducedContribution: z.coerce.number().min(0, 'Must be a positive number'),
   totalDays: z.coerce.number().int().min(1, 'Must be at least 1 day'),
 });
+type FormValues = z.infer<typeof formSchema>;
 interface SetupMessFormProps {
   settings?: MessSettings;
   onSuccess: () => void;
 }
 const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
   const queryClient = useQueryClient();
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       standardContribution: settings?.standardContribution || 450,
@@ -28,7 +29,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
     },
   });
   const mutation = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => api('/api/mess/init', { method: 'POST', body: JSON.stringify(values) }),
+    mutationFn: (values: FormValues) => api('/api/mess/init', { method: 'POST', body: JSON.stringify(values) }),
     onSuccess: () => {
       toast.success('Mess settings saved successfully!');
       queryClient.invalidateQueries({ queryKey: ['messState'] });
@@ -38,7 +39,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
       toast.error(`Failed to save settings: ${error.message}`);
     },
   });
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: FormValues) {
     mutation.mutate(values);
   }
   return (
