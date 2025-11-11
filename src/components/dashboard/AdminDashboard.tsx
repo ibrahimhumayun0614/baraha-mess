@@ -3,6 +3,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { DollarSign, Users, ShoppingCart, Download, TrendingUp, KeyRound } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { DateRange } from 'react-day-picker';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
 import { useAuthStore } from '@/hooks/use-auth-store';
@@ -17,7 +18,7 @@ import AuditLogsTable from '@/components/dashboard/AuditLogsTable';
 import DashboardActions from '@/components/dashboard/DashboardActions';
 import MemberForm from '@/components/forms/MemberForm';
 import ExpenseForm from '@/components/forms/ExpenseForm';
-import { exportAdminReport } from '@/lib/reporting';
+import { exportAdminReport, exportAuditLogs } from '@/lib/reporting';
 import SetAdminPasswordDialog from './SetAdminPasswordDialog';
 import ResetAdminPasswordDialog from './ResetAdminPasswordDialog';
 import SuperAdminChangePasswordDialog from './SuperAdminChangePasswordDialog';
@@ -80,6 +81,20 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
     },
     onError: (err) => toast.error(`Failed to reset password: ${(err as Error).message}`),
   });
+  const { mutate: clearAuditLogs } = useMutation({
+    mutationFn: (dateRange: DateRange) => {
+      const params = new URLSearchParams({
+        startDate: dateRange.from!.toISOString(),
+        endDate: dateRange.to!.toISOString(),
+      });
+      return api(`/api/audit-logs?${params.toString()}`, { method: 'DELETE' });
+    },
+    onSuccess: (data: any) => {
+      toast.success(`${data.deletedCount} audit logs cleared successfully.`);
+      queryClient.invalidateQueries({ queryKey: ['messState'] });
+    },
+    onError: (err) => toast.error(`Failed to clear audit logs: ${(err as Error).message}`),
+  });
   const { totalContribution, totalSpent, balance, membersWithExpenses, adjustedDailyRate } = useMemo(() => {
     if (!messState) return { totalContribution: 0, totalSpent: 0, balance: 0, membersWithExpenses: [], adjustedDailyRate: 0 };
     const totalContribution = messState.members.reduce((sum, m) => sum + m.contribution, 0);
@@ -109,6 +124,15 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
       toast.success("Report downloaded successfully!");
     } catch (error) {
       toast.error("Failed to generate report.");
+      console.error(error);
+    }
+  };
+  const handleDownloadLogs = (logs: AuditLog[]) => {
+    try {
+      exportAuditLogs(logs);
+      toast.success("Audit logs downloaded successfully!");
+    } catch (error) {
+      toast.error("Failed to download audit logs.");
       console.error(error);
     }
   };
@@ -171,7 +195,11 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
           <Card className="shadow-lg">
             <CardContent className="p-6">
               <h2 className="text-2xl font-semibold mb-4 text-gray-800">Audit Logs</h2>
-              <AuditLogsTable auditLogs={messState?.auditLogs || []} />
+              <AuditLogsTable
+                auditLogs={messState?.auditLogs || []}
+                onClearLogs={clearAuditLogs}
+                onDownloadLogs={handleDownloadLogs}
+              />
             </CardContent>
           </Card>
         )}
