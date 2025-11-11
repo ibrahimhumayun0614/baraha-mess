@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import StatCard from '@/components/dashboard/StatCard';
 import MembersTable from '@/components/dashboard/MembersTable';
 import ExpensesTable from '@/components/dashboard/ExpensesTable';
+import AuditLogsTable from '@/components/dashboard/AuditLogsTable';
 import DashboardActions from '@/components/dashboard/DashboardActions';
 import MemberForm from '@/components/forms/MemberForm';
 import ExpenseForm from '@/components/forms/ExpenseForm';
@@ -23,6 +24,7 @@ interface MessState {
   settings: MessSettings;
   members: Member[];
   expenses: Expense[];
+  auditLogs: AuditLog[];
 }
 interface AdminDashboardProps {
   messState: MessState;
@@ -150,6 +152,12 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
               onEdit={(expense) => setEditingExpense(expense)}
               onDelete={deleteExpense}
             />
+          </CardContent>
+        </Card>
+        <Card className="shadow-lg">
+          <CardContent className="p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Audit Logs</h2>
+            <AuditLogsTable auditLogs={messState?.auditLogs || []} />
           </CardContent>
         </Card>
       </div>
