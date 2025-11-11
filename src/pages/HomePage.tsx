@@ -1,14 +1,14 @@
-// Home page of the app, Currently a demo page for demonstration.
-// Please rewrite this file to implement your own logic. Do not replace or delete it, simply rewrite this HomePage.tsx file.
-import { useEffect } from 'react'
-import { Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { Toaster, toast } from '@/components/ui/sonner'
-import { create } from 'zustand'
-import { useShallow } from 'zustand/react/shallow'
-import { AppLayout } from '@/components/layout/AppLayout'
-// Timer store: independent slice with a clear, minimal API, for demonstration
+
+
+import { useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Toaster, toast } from '@/components/ui/sonner';
+import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
+import { AppLayout } from "../components/layout/AppLayout";
+
 type TimerState = {
   isRunning: boolean;
   elapsedMs: number;
@@ -16,74 +16,74 @@ type TimerState = {
   pause: () => void;
   reset: () => void;
   tick: (deltaMs: number) => void;
-}
+};
 const useTimerStore = create<TimerState>((set) => ({
   isRunning: false,
   elapsedMs: 0,
   start: () => set({ isRunning: true }),
   pause: () => set({ isRunning: false }),
   reset: () => set({ elapsedMs: 0, isRunning: false }),
-  tick: (deltaMs) => set((s) => ({ elapsedMs: s.elapsedMs + deltaMs })),
-}))
-// Counter store: separate slice to showcase multiple stores without coupling
+  tick: (deltaMs) => set((s) => ({ elapsedMs: s.elapsedMs + deltaMs }))
+}));
+
 type CounterState = {
   count: number;
   inc: () => void;
   reset: () => void;
-}
+};
 const useCounterStore = create<CounterState>((set) => ({
   count: 0,
   inc: () => set((s) => ({ count: s.count + 1 })),
-  reset: () => set({ count: 0 }),
-}))
+  reset: () => set({ count: 0 })
+}));
 function formatDuration(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000))
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 export function HomePage() {
-  // Select only what is needed to avoid unnecessary re-renders
+
   const { isRunning, elapsedMs } = useTimerStore(
-    useShallow((s) => ({ isRunning: s.isRunning, elapsedMs: s.elapsedMs })),
-  )
-  const start = useTimerStore((s) => s.start)
-  const pause = useTimerStore((s) => s.pause)
-  const resetTimer = useTimerStore((s) => s.reset)
-  const count = useCounterStore((s) => s.count)
-  const inc = useCounterStore((s) => s.inc)
-  const resetCount = useCounterStore((s) => s.reset)
-  // Drive the timer only while running; avoid update-depth issues with a scoped RAF
+    useShallow((s) => ({ isRunning: s.isRunning, elapsedMs: s.elapsedMs }))
+  );
+  const start = useTimerStore((s) => s.start);
+  const pause = useTimerStore((s) => s.pause);
+  const resetTimer = useTimerStore((s) => s.reset);
+  const count = useCounterStore((s) => s.count);
+  const inc = useCounterStore((s) => s.inc);
+  const resetCount = useCounterStore((s) => s.reset);
+
   useEffect(() => {
-    if (!isRunning) return
-    let raf = 0
-    let last = performance.now()
+    if (!isRunning) return;
+    let raf = 0;
+    let last = performance.now();
     const loop = () => {
-      const now = performance.now()
-      const delta = now - last
-      last = now
-      // Read store API directly to keep effect deps minimal and stable
-      useTimerStore.getState().tick(delta)
-      raf = requestAnimationFrame(loop)
-    }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
-  }, [isRunning])
+      const now = performance.now();
+      const delta = now - last;
+      last = now;
+
+      useTimerStore.getState().tick(delta);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [isRunning]);
   const onPleaseWait = () => {
-    inc()
+    inc();
     if (!isRunning) {
-      start()
+      start();
       toast.success('Building your app…', {
-        description: 'Hang tight, we\'re setting everything up.',
-      })
+        description: 'Hang tight, we\'re setting everything up.'
+      });
     } else {
-      pause()
+      pause();
       toast.info('Taking a short pause', {
-        description: 'We\'ll continue shortly.',
-      })
+        description: 'We\'ll continue shortly.'
+      });
     }
-  }
-  const formatted = formatDuration(elapsedMs)
+  };
+  const formatted = formatDuration(elapsedMs);
   return (
     <AppLayout>
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 overflow-hidden relative">
@@ -106,8 +106,8 @@ export function HomePage() {
               size="lg"
               onClick={onPleaseWait}
               className="btn-gradient px-8 py-4 text-lg font-semibold hover:-translate-y-0.5 transition-all duration-200"
-              aria-live="polite"
-            >
+              aria-live="polite">
+
               Please Wait
             </Button>
           </div>
@@ -120,10 +120,10 @@ export function HomePage() {
             </div>
           </div>
           <div className="flex justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => { resetTimer(); resetCount(); toast('Reset complete') }}>
+            <Button variant="outline" size="sm" onClick={() => {resetTimer();resetCount();toast('Reset complete');}}>
               Reset
             </Button>
-            <Button variant="outline" size="sm" onClick={() => { inc(); toast('Coin added') }}>
+            <Button variant="outline" size="sm" onClick={() => {inc();toast('Coin added');}}>
               Add Coin
             </Button>
           </div>
@@ -133,6 +133,6 @@ export function HomePage() {
         </footer>
         <Toaster richColors closeButton />
       </div>
-    </AppLayout>
-  )
+    </AppLayout>);
+
 }
