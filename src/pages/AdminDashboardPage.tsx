@@ -6,11 +6,12 @@ import { useAuthStore } from '@/hooks/use-auth-store';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import AdminDashboard from '@/components/dashboard/AdminDashboard';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { MessSettings, Member, Expense } from '@shared/types';
+import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
 interface MessState {
   settings: MessSettings;
   members: Member[];
   expenses: Expense[];
+  auditLogs: AuditLog[];
 }
 export function AdminDashboardPage() {
   const navigate = useNavigate();
