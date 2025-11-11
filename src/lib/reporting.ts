@@ -1,0 +1,85 @@
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
+import type { Member, Expense, AuditLog } from '@shared/types';
+interface MemberWithBalance extends Member {
+  totalExpenses: number;
+  balance: number;
+}
+type AuditLogMutation = (log: Partial<AuditLog>) => void;
+export const exportAdminReport = (
+  members: MemberWithBalance[],
+  expenses: Expense[],
+  createAuditLog: AuditLogMutation
+) => {
+  const wb = XLSX.utils.book_new();
+  // Members Sheet
+  const membersData = members.map(m => ({
+    Name: m.name,
+    Type: m.type,
+    Contribution: m.contribution,
+    'Total Expenses': m.totalExpenses,
+    'Remaining Balance': m.balance,
+  }));
+  const membersWs = XLSX.utils.json_to_sheet(membersData);
+  XLSX.utils.book_append_sheet(wb, membersWs, 'Members Summary');
+  // Expenses Sheet
+  const memberMap = new Map(members.map(m => [m.id, m.name]));
+  const expensesData = expenses.map(e => ({
+    Member: memberMap.get(e.memberId) || 'Unknown',
+    Date: format(new Date(e.date), 'yyyy-MM-dd'),
+    Amount: e.amount,
+    Note: e.note || '',
+    'Device Info': e.deviceInfo,
+  }));
+  const expensesWs = XLSX.utils.json_to_sheet(expensesData);
+  XLSX.utils.book_append_sheet(wb, expensesWs, 'All Expenses');
+  // Download
+  const fileName = `Baraha_Mess_Admin_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  createAuditLog({ event: 'report_download' });
+};
+export const exportMemberReport = (
+  member: MemberWithBalance,
+  expenses: Expense[],
+  createAuditLog: AuditLogMutation
+) => {
+  const wb = XLSX.utils.book_new();
+  // Summary Sheet
+  const summaryData = [{
+    Name: member.name,
+    Type: member.type,
+    Contribution: member.contribution,
+    'Total Expenses': member.totalExpenses,
+    'Remaining Balance': member.balance,
+  }];
+  const summaryWs = XLSX.utils.json_to_sheet(summaryData);
+  XLSX.utils.book_append_sheet(wb, summaryWs, 'My Summary');
+  // Expenses Sheet
+  const expensesData = expenses.map(e => ({
+    Date: format(new Date(e.date), 'yyyy-MM-dd'),
+    Amount: e.amount,
+    Note: e.note || '',
+  }));
+  const expensesWs = XLSX.utils.json_to_sheet(expensesData);
+  XLSX.utils.book_append_sheet(wb, expensesWs, 'My Expenses');
+  // Download
+  const fileName = `Baraha_Mess_${member.name}_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  createAuditLog({ event: 'report_download' });
+};
+export const exportAuditLogs = (logs: AuditLog[]) => {
+  const wb = XLSX.utils.book_new();
+  const formatEvent = (event: string) => {
+    return event.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+  const logsData = logs.map(log => ({
+    Event: formatEvent(log.event),
+    User: log.userName,
+    Timestamp: format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss'),
+    Details: JSON.stringify(log.metadata) || log.deviceInfo,
+  }));
+  const logsWs = XLSX.utils.json_to_sheet(logsData);
+  XLSX.utils.book_append_sheet(wb, logsWs, 'Audit Logs');
+  const fileName = `Baraha_Mess_Audit_Logs_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+};
