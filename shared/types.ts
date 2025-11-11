@@ -11,7 +11,7 @@ export interface Member {
   contribution: number;
   role: 'admin' | 'member';
   password?: string;
-  daysEaten?: number;
+  days?: number;
 }
 export interface Expense {
   id:string;
