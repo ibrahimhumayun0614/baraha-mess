@@ -5,6 +5,7 @@ import { UtensilsCrossed, User, Shield, KeyRound, ArrowLeft } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthStore } from '@/hooks/use-auth-store';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
@@ -89,6 +90,12 @@ export function LoginPage() {
       performLogin({ role: 'admin', password, memberId: loginAttempt.member.id });
     }
   };
+  const handleMemberSelect = (selectedMemberId: string) => {
+    const member = members?.find(m => m.id === selectedMemberId);
+    if (member) {
+      handleLogin(member);
+    }
+  };
   const renderPasswordForm = () => (
     <form onSubmit={handlePasswordSubmit} className="space-y-4">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -129,19 +136,21 @@ export function LoginPage() {
       {isLoading ? (
         <p className="text-center text-muted-foreground">Loading members...</p>
       ) : (
-        <div className="space-y-2">
-          {members?.map((member) => (
-            <Button
-              key={member.id}
-              onClick={() => handleLogin(member)}
-              variant="outline"
-              className="w-full h-12 text-md transition-all duration-300 transform hover:scale-105 hover:bg-slate-100"
-            >
-              {member.role === 'admin' ? <Shield className="mr-2 h-5 w-5 text-green-600" /> : <User className="mr-2 h-5 w-5" />}
-              {member.name}
-            </Button>
-          ))}
-        </div>
+        <Select onValueChange={handleMemberSelect}>
+          <SelectTrigger className="w-full h-12 text-md">
+            <SelectValue placeholder="Select your name to login" />
+          </SelectTrigger>
+          <SelectContent>
+            {members?.map((member) => (
+              <SelectItem key={member.id} value={member.id}>
+                <div className="flex items-center">
+                  {member.role === 'admin' ? <Shield className="mr-2 h-5 w-5 text-green-600" /> : <User className="mr-2 h-5 w-5" />}
+                  {member.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
     </div>
   );
@@ -167,7 +176,7 @@ export function LoginPage() {
         </Card>
       </motion.div>
       <footer className="absolute bottom-4 text-center text-muted-foreground/80 text-sm">
-        <p>Built with ❤��� at Cloudflare</p>
+        <p>Built with ❤️ at Cloudflare</p>
       </footer>
     </div>
   );
