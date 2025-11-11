@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { MoreHorizontal, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Trash2, Pencil } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -19,11 +19,13 @@ import type { Expense, Member } from '@shared/types';
 interface ExpensesTableProps {
   expenses: Expense[];
   members: Member[];
+  onEdit?: (expense: Expense) => void;
   onDelete?: (id: string) => void;
 }
-const ExpensesTable = ({ expenses, members, onDelete }: ExpensesTableProps) => {
+const ExpensesTable = ({ expenses, members, onEdit, onDelete }: ExpensesTableProps) => {
   const memberMap = new Map(members.map((m) => [m.id, m.name]));
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(amount);
+  const hasActions = !!onEdit || !!onDelete;
   return (
     <div className="rounded-lg border">
       <Table>
@@ -33,7 +35,7 @@ const ExpensesTable = ({ expenses, members, onDelete }: ExpensesTableProps) => {
             <TableHead>Date</TableHead>
             <TableHead>Note</TableHead>
             <TableHead className="text-right">Amount</TableHead>
-            {onDelete && <TableHead className="text-right">Actions</TableHead>}
+            {hasActions && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -44,7 +46,7 @@ const ExpensesTable = ({ expenses, members, onDelete }: ExpensesTableProps) => {
                 <TableCell>{format(new Date(expense.date), 'PP')}</TableCell>
                 <TableCell className="text-muted-foreground">{expense.note || '-'}</TableCell>
                 <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
-                {onDelete && (
+                {hasActions && (
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -54,10 +56,18 @@ const ExpensesTable = ({ expenses, members, onDelete }: ExpensesTableProps) => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onDelete(expense.id)} className="text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
+                        {onEdit && (
+                          <DropdownMenuItem onClick={() => onEdit(expense)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            <span>Edit</span>
+                          </DropdownMenuItem>
+                        )}
+                        {onDelete && (
+                          <DropdownMenuItem onClick={() => onDelete(expense.id)} className="text-red-600">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Delete</span>
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -66,7 +76,7 @@ const ExpensesTable = ({ expenses, members, onDelete }: ExpensesTableProps) => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={onDelete ? 5 : 4} className="h-24 text-center">
+              <TableCell colSpan={hasActions ? 5 : 4} className="h-24 text-center">
                 No expenses found.
               </TableCell>
             </TableRow>

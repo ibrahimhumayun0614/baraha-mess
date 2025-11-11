@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/hooks/use-auth-store';
 import { api } from '@/lib/api-client';
-import type { Member } from '@shared/types';
-import { useQuery } from '@tanstack/react-query';
+import { getDeviceInfo } from '@/lib/utils';
+import type { Member, AuditLog } from '@shared/types';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Toaster, toast } from 'sonner';
 export function LoginPage() {
   const navigate = useNavigate();
@@ -17,6 +18,10 @@ export function LoginPage() {
     queryKey: ['members'],
     queryFn: () => api('/api/members'),
   });
+  const { mutate: createAuditLog } = useMutation({
+    mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
+    onError: (err) => console.error("Failed to create audit log:", err),
+  });
   useEffect(() => {
     if (role) {
       navigate('/dashboard');
@@ -25,6 +30,12 @@ export function LoginPage() {
   const handleLogin = (selectedRole: 'admin' | 'member', member?: Member) => {
     login(selectedRole, member);
     toast.success(`Logged in as ${member ? member.name : 'Admin'}`);
+    createAuditLog({
+      event: 'login',
+      userId: member ? member.id : 'admin',
+      userName: member ? member.name : 'Admin',
+      deviceInfo: getDeviceInfo(),
+    });
     navigate('/dashboard');
   };
   return (
@@ -89,7 +100,7 @@ export function LoginPage() {
         </Card>
       </motion.div>
       <footer className="absolute bottom-4 text-center text-muted-foreground/80 text-sm">
-        <p>Built with ❤️ at Cloudflare</p>
+        <p>Built with ��️ at Cloudflare</p>
       </footer>
     </div>
   );

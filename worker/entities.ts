@@ -1,5 +1,5 @@
 import { IndexedEntity, Entity, Env } from "./core-utils";
-import type { Member, Expense, MessSettings } from "@shared/types";
+import type { Member, Expense, MessSettings, AuditLog } from "@shared/types";
 export class MessSettingsEntity extends Entity<MessSettings> {
   static readonly entityName = "mess-settings";
   static readonly initialState: MessSettings = {
@@ -22,4 +22,16 @@ export class ExpenseEntity extends IndexedEntity<Expense> {
   static readonly entityName = "expense";
   static readonly indexName = "expenses";
   static readonly initialState: Expense = { id: "", memberId: "", amount: 0, date: "", deviceInfo: "" };
+}
+export class AuditLogEntity extends IndexedEntity<AuditLog> {
+  static readonly entityName = "audit-log";
+  static readonly indexName = "audit-logs";
+  static readonly initialState: AuditLog = {
+    id: "",
+    event: "login",
+    userId: "",
+    userName: "",
+    timestamp: "",
+    deviceInfo: "",
+  };
 }

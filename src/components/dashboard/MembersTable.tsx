@@ -22,7 +22,7 @@ interface MemberWithBalance extends Member {
 }
 interface MembersTableProps {
   members: MemberWithBalance[];
-  onEdit: (member: Member) => void;
+  onEdit: (member: MemberWithBalance) => void;
   onDelete: (id: string) => void;
 }
 const MembersTable = ({ members, onEdit, onDelete }: MembersTableProps) => {
