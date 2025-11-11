@@ -4,6 +4,20 @@ import { MessSettingsEntity, MemberEntity, ExpenseEntity, AuditLogEntity } from 
 import { ok, bad, notFound, isStr } from './core-utils';
 import type { Member, MemberType, Expense, AuditLog } from "@shared/types";
 import { hashPassword } from "./auth-utils";
+// Helper to fetch all items from a paginated list
+async function listAll<T extends { id: string }>(
+  EntityClass: { list: (env: Env, cursor?: string | null, limit?: number) => Promise<{ items: T[], next: string | null }> },
+  env: Env
+): Promise<T[]> {
+  const allItems: T[] = [];
+  let cursor: string | null = null;
+  do {
+    const page = await EntityClass.list(env, cursor);
+    allItems.push(...page.items);
+    cursor = page.next;
+  } while (cursor);
+  return allItems;
+}
 // Updated super admin password to 'Muhammed97@#'
 const SUPER_ADMIN_PASSWORD_HASH = 'b2e909512216d362dececcda68d4ed4b77a7413e1a80e8154b84ddac2fd533dd';
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
@@ -50,30 +64,47 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // MESS SETTINGS
   app.post('/api/mess/init', async (c) => {
-    const { standardContribution, reducedContribution, totalDays } = await c.req.json();
+    const { standardContribution, reducedContribution, totalDays, resetData } = await c.req.json();
     if (typeof standardContribution !== 'number' || typeof reducedContribution !== 'number' || typeof totalDays !== 'number') {
       return bad(c, 'Invalid input data');
     }
     const settings = new MessSettingsEntity(c.env);
     await settings.patch({ standardContribution, reducedContribution, totalDays, initialized: true });
+    if (resetData) {
+      // 1. Delete all expenses
+      const allExpenses = await listAll(ExpenseEntity, c.env);
+      const expenseIds = allExpenses.map(e => e.id);
+      if (expenseIds.length > 0) {
+        await ExpenseEntity.deleteMany(c.env, expenseIds);
+      }
+      // 2. Recalculate contributions for all members
+      const allMembers = await listAll(MemberEntity, c.env);
+      for (const member of allMembers) {
+        const memberEntity = new MemberEntity(c.env, member.id);
+        const memberDays = member.days ?? totalDays;
+        const baseContribution = member.type === 'standard' ? standardContribution : reducedContribution;
+        const newContribution = totalDays > 0 ? (baseContribution / totalDays) * memberDays : baseContribution;
+        await memberEntity.patch({ contribution: newContribution });
+      }
+    }
     return ok(c, await settings.getState());
   });
   app.get('/api/mess/state', async (c) => {
     const settings = new MessSettingsEntity(c.env);
     const state = await settings.getState();
-    const members = await MemberEntity.list(c.env);
-    const expenses = await ExpenseEntity.list(c.env);
+    const members = await listAll(MemberEntity, c.env);
+    const expenses = await listAll(ExpenseEntity, c.env);
     // Strip passwords before sending to client
-    const membersWithoutPasswords = members.items.map(m => {
+    const membersWithoutPasswords = members.map(m => {
       const { password, ...rest } = m;
       return rest;
     });
-    return ok(c, { settings: state, members: membersWithoutPasswords, expenses: expenses.items });
+    return ok(c, { settings: state, members: membersWithoutPasswords, expenses: expenses });
   });
   // MEMBERS
   app.get('/api/members', async (c) => {
-    let page = await MemberEntity.list(c.env);
-    if (page.items.length === 0) {
+    let members = await listAll(MemberEntity, c.env);
+    if (members.length === 0) {
       const settings = await new MessSettingsEntity(c.env).getState();
       const mockMembersData: { name: string; type: MemberType, role: 'admin' | 'member' }[] = [
         { name: 'Alice', type: 'standard', role: 'admin' },
@@ -94,10 +125,10 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         alice.password = await hashPassword('password');
       }
       await Promise.all(newMembers.map((m) => MemberEntity.create(c.env, m)));
-      page = await MemberEntity.list(c.env); // Re-fetch to get the created members
+      members = await listAll(MemberEntity, c.env); // Re-fetch to get the created members
     }
     // Strip passwords before sending to client
-    const membersWithoutPasswords = page.items.map(m => {
+    const membersWithoutPasswords = members.map(m => {
       const { password, ...rest } = m;
       return rest;
     });
@@ -209,8 +240,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // EXPENSES
   app.get('/api/expenses', async (c) => {
-    const page = await ExpenseEntity.list(c.env);
-    return ok(c, page.items);
+    const expenses = await listAll(ExpenseEntity, c.env);
+    return ok(c, expenses);
   });
   app.post('/api/expenses', async (c) => {
     const { memberId, amount, date, note, deviceInfo } = (await c.req.json()) as Partial<Expense>;
