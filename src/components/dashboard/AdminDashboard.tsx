@@ -1,16 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { DollarSign, Users, ShoppingCart, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '@/lib/api-client';
-import type { MessSettings, Member, Expense } from '@shared/types';
+import { getDeviceInfo } from '@/lib/utils';
+import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StatCard from '@/components/dashboard/StatCard';
 import MembersTable from '@/components/dashboard/MembersTable';
 import ExpensesTable from '@/components/dashboard/ExpensesTable';
 import DashboardActions from '@/components/dashboard/DashboardActions';
+import MemberForm from '@/components/forms/MemberForm';
+import ExpenseForm from '@/components/forms/ExpenseForm';
 import { exportAdminReport } from '@/lib/reporting';
 interface MessState {
   settings: MessSettings;
@@ -22,6 +26,8 @@ interface AdminDashboardProps {
 }
 const AdminDashboard = ({ messState }: AdminDashboardProps) => {
   const queryClient = useQueryClient();
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const { mutate: deleteMember } = useMutation({
     mutationFn: (id: string) => api(`/api/members/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
@@ -38,6 +44,10 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
     },
     onError: (err) => toast.error((err as Error).message),
   });
+  const { mutate: createAuditLog } = useMutation({
+    mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
+    onError: (err) => console.error("Failed to create audit log:", err),
+  });
   const { totalContribution, totalSpent, balance, membersWithExpenses } = useMemo(() => {
     if (!messState) return { totalContribution: 0, totalSpent: 0, balance: 0, membersWithExpenses: [] };
     const totalContribution = messState.members.reduce((sum, m) => sum + m.contribution, 0);
@@ -53,7 +63,14 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
   }, [messState]);
   const handleDownloadReport = () => {
     try {
-      exportAdminReport(membersWithExpenses, messState.expenses);
+      exportAdminReport(membersWithExpenses, messState.expenses, (log) => {
+        createAuditLog({
+          ...log,
+          userId: 'admin',
+          userName: 'Admin',
+          deviceInfo: getDeviceInfo(),
+        });
+      });
       toast.success("Report downloaded successfully!");
     } catch (error) {
       toast.error("Failed to generate report.");
@@ -73,10 +90,7 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
         className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-8"
         initial="hidden"
         animate="visible"
-        variants={{
-          hidden: {},
-          visible: { transition: { staggerChildren: 0.1 } }
-        }}
+        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
       >
         <StatCard title="Total Contribution" value={totalContribution} icon={DollarSign} formatAsCurrency />
         <StatCard title="Total Spent" value={totalSpent} icon={ShoppingCart} formatAsCurrency />
@@ -87,7 +101,7 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
         <Card className="shadow-lg">
           <CardContent className="p-6">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800">Members Overview</h2>
-            <MembersTable members={membersWithExpenses} onEdit={() => { /* TODO */ }} onDelete={deleteMember} />
+            <MembersTable members={membersWithExpenses} onEdit={(member) => setEditingMember(member)} onDelete={deleteMember} />
           </CardContent>
         </Card>
         <Card className="shadow-lg">
@@ -96,11 +110,28 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
             <ExpensesTable
               expenses={messState?.expenses || []}
               members={messState?.members || []}
+              onEdit={(expense) => setEditingExpense(expense)}
               onDelete={deleteExpense}
             />
           </CardContent>
         </Card>
       </div>
+      <Dialog open={!!editingMember} onOpenChange={(isOpen) => !isOpen && setEditingMember(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Member</DialogTitle>
+          </DialogHeader>
+          {editingMember && <MemberForm member={editingMember} onSuccess={() => setEditingMember(null)} />}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!editingExpense} onOpenChange={(isOpen) => !isOpen && setEditingExpense(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Expense</DialogTitle>
+          </DialogHeader>
+          {editingExpense && <ExpenseForm expense={editingExpense} members={messState.members} onSuccess={() => setEditingExpense(null)} />}
+        </DialogContent>
+      </Dialog>
     </main>
   );
 };

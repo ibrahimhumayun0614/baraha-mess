@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
 import { useAuthStore } from '@/hooks/use-auth-store';
-import type { Member } from '@shared/types';
+import type { Member, Expense } from '@shared/types';
 const formSchema = z.object({
   memberId: z.string().min(1, 'Please select a member'),
   amount: z.coerce.number().positive('Amount must be positive'),
@@ -21,33 +21,37 @@ const formSchema = z.object({
 });
 interface ExpenseFormProps {
   members: Member[];
+  expense?: Expense;
   onSuccess: () => void;
 }
-const ExpenseForm = ({ members, onSuccess }: ExpenseFormProps) => {
+const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
   const queryClient = useQueryClient();
   const role = useAuthStore((state) => state.role);
   const loggedInMember = useAuthStore((state) => state.member);
+  const isEditMode = !!expense;
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      memberId: role === 'member' ? loggedInMember?.id : '',
-      amount: undefined, // Use undefined for placeholder to show
-      date: format(new Date(), 'yyyy-MM-dd'),
-      note: '',
+      memberId: expense?.memberId || (role === 'member' ? loggedInMember?.id : ''),
+      amount: expense?.amount || undefined,
+      date: expense ? format(new Date(expense.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      note: expense?.note || '',
     },
   });
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      const payload = { ...values, deviceInfo: getDeviceInfo() };
-      return api('/api/expenses', { method: 'POST', body: JSON.stringify(payload) });
+      const endpoint = isEditMode ? `/api/expenses/${expense.id}` : '/api/expenses';
+      const method = isEditMode ? 'PUT' : 'POST';
+      const payload = isEditMode ? values : { ...values, deviceInfo: getDeviceInfo() };
+      return api(endpoint, { method, body: JSON.stringify(payload) });
     },
     onSuccess: () => {
-      toast.success('Expense logged successfully!');
+      toast.success(`Expense ${isEditMode ? 'updated' : 'logged'} successfully!`);
       queryClient.invalidateQueries({ queryKey: ['messState'] });
       onSuccess();
     },
     onError: (error) => {
-      toast.error(`Failed to log expense: ${error.message}`);
+      toast.error(`Failed to ${isEditMode ? 'update' : 'log'} expense: ${error.message}`);
     },
   });
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -63,7 +67,7 @@ const ExpenseForm = ({ members, onSuccess }: ExpenseFormProps) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Member</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditMode}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a member" />
@@ -120,7 +124,7 @@ const ExpenseForm = ({ members, onSuccess }: ExpenseFormProps) => {
           )}
         />
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? 'Logging...' : 'Log Expense'}
+          {mutation.isPending ? (isEditMode ? 'Updating...' : 'Logging...') : (isEditMode ? 'Update Expense' : 'Log Expense')}
         </Button>
       </form>
     </Form>
