@@ -1,11 +1,16 @@
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import type { Member, Expense } from '@shared/types';
+import type { Member, Expense, AuditLog } from '@shared/types';
 interface MemberWithBalance extends Member {
   totalExpenses: number;
   balance: number;
 }
-export const exportAdminReport = (members: MemberWithBalance[], expenses: Expense[]) => {
+type AuditLogMutation = (log: Partial<AuditLog>) => void;
+export const exportAdminReport = (
+  members: MemberWithBalance[],
+  expenses: Expense[],
+  createAuditLog: AuditLogMutation
+) => {
   const wb = XLSX.utils.book_new();
   // Members Sheet
   const membersData = members.map(m => ({
@@ -31,8 +36,13 @@ export const exportAdminReport = (members: MemberWithBalance[], expenses: Expens
   // Download
   const fileName = `DineFlow_Admin_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
   XLSX.writeFile(wb, fileName);
+  createAuditLog({ event: 'report_download' });
 };
-export const exportMemberReport = (member: MemberWithBalance, expenses: Expense[]) => {
+export const exportMemberReport = (
+  member: MemberWithBalance,
+  expenses: Expense[],
+  createAuditLog: AuditLogMutation
+) => {
   const wb = XLSX.utils.book_new();
   // Summary Sheet
   const summaryData = [{
@@ -55,4 +65,5 @@ export const exportMemberReport = (member: MemberWithBalance, expenses: Expense[
   // Download
   const fileName = `DineFlow_${member.name}_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
   XLSX.writeFile(wb, fileName);
+  createAuditLog({ event: 'report_download' });
 };

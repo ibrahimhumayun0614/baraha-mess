@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { useMutation } from '@tanstack/react-query';
 import { DollarSign, ShoppingCart, Wallet, PlusCircle, Download } from 'lucide-react';
-import type { MessSettings, Member, Expense } from '@shared/types';
+import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
+import { api } from '@/lib/api-client';
+import { getDeviceInfo } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -21,6 +24,10 @@ interface MemberDashboardProps {
 }
 const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
   const [isExpenseOpen, setExpenseOpen] = useState(false);
+  const { mutate: createAuditLog } = useMutation({
+    mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
+    onError: (err) => console.error("Failed to create audit log:", err),
+  });
   const { myExpenses, myTotalSpent, myBalance } = useMemo(() => {
     const myExpenses = messState.expenses.filter(e => e.memberId === currentUser.id);
     const myTotalSpent = myExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -34,7 +41,14 @@ const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
         totalExpenses: myTotalSpent,
         balance: myBalance,
       };
-      exportMemberReport(memberWithBalance, myExpenses);
+      exportMemberReport(memberWithBalance, myExpenses, (log) => {
+        createAuditLog({
+          ...log,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          deviceInfo: getDeviceInfo(),
+        });
+      });
       toast.success("Your report has been downloaded!");
     } catch (error) {
       toast.error("Failed to generate your report.");

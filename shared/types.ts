@@ -25,3 +25,13 @@ export interface MessSettings {
   totalDays: number;
   initialized: boolean;
 }
+export type AuditLogEvent = 'login' | 'expense_created' | 'expense_updated' | 'expense_deleted' | 'member_created' | 'member_updated' | 'member_deleted' | 'report_download';
+export interface AuditLog {
+  id: string;
+  event: AuditLogEvent;
+  userId: string; // Can be 'admin' or a member ID
+  userName: string;
+  timestamp: string; // ISO string
+  deviceInfo: string;
+  metadata?: Record<string, any>;
+}
