@@ -82,7 +82,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         metadata: { standardContribution, reducedContribution, totalDays },
       });
       // 2. Recalculate contributions for all members
-      const allMembers = await listAll(cursor => MemberEntity.list<Member>(c.env, cursor));
+      const allMembers = await listAll(cursor => MemberEntity.list(c.env, cursor));
       for (const member of allMembers) {
         const memberEntity = new MemberEntity(c.env, member.id);
         const memberDays = member.days ?? totalDays;
@@ -96,9 +96,9 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/mess/state', async (c) => {
     const settings = new MessSettingsEntity(c.env);
     const state = await settings.getState();
-    const members = await listAll(cursor => MemberEntity.list<Member>(c.env, cursor));
-    const expenses = await listAll(cursor => ExpenseEntity.list<Expense>(c.env, cursor));
-    const auditLogs = await listAll(cursor => AuditLogEntity.list<AuditLog>(c.env, cursor));
+    const members = await listAll(cursor => MemberEntity.list(c.env, cursor));
+    const expenses = await listAll(cursor => ExpenseEntity.list(c.env, cursor));
+    const auditLogs = await listAll(cursor => AuditLogEntity.list(c.env, cursor));
     // Strip passwords before sending to client
     const membersWithoutPasswords = members.map(m => {
       const { password, ...rest } = m;
@@ -108,7 +108,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // MEMBERS
   app.get('/api/members', async (c) => {
-    let members = await listAll(cursor => MemberEntity.list<Member>(c.env, cursor));
+    let members = await listAll(cursor => MemberEntity.list(c.env, cursor));
     if (members.length === 0) {
       const settings = await new MessSettingsEntity(c.env).getState();
       const mockMembersData: { name: string; type: MemberType, role: 'admin' | 'member' }[] = [
@@ -130,7 +130,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         alice.password = await hashPassword('password');
       }
       await Promise.all(newMembers.map((m) => MemberEntity.create(c.env, m)));
-      members = await listAll(cursor => MemberEntity.list<Member>(c.env, cursor)); // Re-fetch to get the created members
+      members = await listAll(cursor => MemberEntity.list(c.env, cursor)); // Re-fetch to get the created members
     }
     // Strip passwords before sending to client
     const membersWithoutPasswords = members.map(m => {
@@ -145,8 +145,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const settings = await new MessSettingsEntity(c.env).getState();
     const memberDays = typeof days === 'number' && days >= 0 ? days : settings.totalDays;
     const baseContribution = type === 'standard' ? settings.standardContribution : settings.reducedContribution;
-    const contribution = settings.totalDays > 0 
-      ? (baseContribution / settings.totalDays) * memberDays 
+    const contribution = settings.totalDays > 0
+      ? (baseContribution / settings.totalDays) * memberDays
       : baseContribution;
     const member: Member = { id: crypto.randomUUID(), name, type: type!, contribution, role: 'member', days: memberDays };
     await MemberEntity.create(c.env, member);
@@ -261,7 +261,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // EXPENSES
   app.get('/api/expenses', async (c) => {
-    const expenses = await listAll(cursor => ExpenseEntity.list<Expense>(c.env, cursor));
+    const expenses = await listAll(cursor => ExpenseEntity.list(c.env, cursor));
     return ok(c, expenses);
   });
   app.post('/api/expenses', async (c) => {
@@ -339,5 +339,24 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     } as AuditLog;
     await AuditLogEntity.create(c.env, auditLog);
     return ok(c, auditLog);
+  });
+  app.delete('/api/audit-logs', async (c) => {
+    const startDate = c.req.query('startDate');
+    const endDate = c.req.query('endDate');
+    if (!startDate || !endDate) {
+      return bad(c, 'startDate and endDate query parameters are required.');
+    }
+    const allLogs = await listAll(cursor => AuditLogEntity.list(c.env, cursor));
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const logsToDelete = allLogs.filter(log => {
+      const logDate = new Date(log.timestamp);
+      return logDate >= start && logDate <= end;
+    });
+    const idsToDelete = logsToDelete.map(log => log.id);
+    if (idsToDelete.length > 0) {
+      await AuditLogEntity.deleteMany(c.env, idsToDelete);
+    }
+    return ok(c, { deletedCount: idsToDelete.length });
   });
 }

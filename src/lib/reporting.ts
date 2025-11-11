@@ -67,3 +67,19 @@ export const exportMemberReport = (
   XLSX.writeFile(wb, fileName);
   createAuditLog({ event: 'report_download' });
 };
+export const exportAuditLogs = (logs: AuditLog[]) => {
+  const wb = XLSX.utils.book_new();
+  const formatEvent = (event: string) => {
+    return event.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+  const logsData = logs.map(log => ({
+    Event: formatEvent(log.event),
+    User: log.userName,
+    Timestamp: format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss'),
+    Details: JSON.stringify(log.metadata) || log.deviceInfo,
+  }));
+  const logsWs = XLSX.utils.json_to_sheet(logsData);
+  XLSX.utils.book_append_sheet(wb, logsWs, 'Audit Logs');
+  const fileName = `Baraha_Mess_Audit_Logs_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+};
