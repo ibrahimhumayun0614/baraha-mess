@@ -19,6 +19,7 @@ const formSchema = z.object({
   date: z.string().min(1, 'Date is required'),
   note: z.string().optional(),
 });
+type FormValues = z.infer<typeof formSchema>;
 interface ExpenseFormProps {
   members: Member[];
   expense?: Expense;
@@ -29,17 +30,17 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
   const role = useAuthStore((state) => state.role);
   const loggedInMember = useAuthStore((state) => state.member);
   const isEditMode = !!expense;
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       memberId: expense?.memberId || (role === 'member' ? loggedInMember?.id : ''),
-      amount: expense?.amount || undefined,
+      amount: expense?.amount,
       date: expense ? format(new Date(expense.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       note: expense?.note || '',
     },
   });
   const mutation = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => {
+    mutationFn: (values: FormValues) => {
       const endpoint = isEditMode ? `/api/expenses/${expense.id}` : '/api/expenses';
       const method = isEditMode ? 'PUT' : 'POST';
       const payload = isEditMode ? values : { ...values, deviceInfo: getDeviceInfo() };
@@ -54,7 +55,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
       toast.error(`Failed to ${isEditMode ? 'update' : 'log'} expense: ${error.message}`);
     },
   });
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: FormValues) {
     mutation.mutate(values);
   }
   return (
