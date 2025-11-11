@@ -22,7 +22,7 @@ interface MemberFormProps {
 const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
   const queryClient = useQueryClient();
   const isEditMode = !!member;
-  const form = useForm<FormValues>({
+  const form = useForm({
     resolver: zodResolver(MemberFormSchema),
     defaultValues: {
       name: member?.name || '',

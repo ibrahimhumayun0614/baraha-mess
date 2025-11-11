@@ -20,7 +20,7 @@ interface SetupMessFormProps {
 }
 const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
   const queryClient = useQueryClient();
-  const form = useForm<FormValues>({
+  const form = useForm({
     resolver: zodResolver(SetupMessFormSchema),
     defaultValues: {
       standardContribution: settings?.standardContribution || 450,

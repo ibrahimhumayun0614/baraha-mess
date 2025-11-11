@@ -5,6 +5,7 @@ import { DollarSign, Users, ShoppingCart, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
+import { useAuthStore } from '@/hooks/use-auth-store';
 import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,6 +27,8 @@ interface AdminDashboardProps {
 }
 const AdminDashboard = ({ messState }: AdminDashboardProps) => {
   const queryClient = useQueryClient();
+  const { role, member } = useAuthStore();
+  const isSuperAdmin = role === 'admin' && !member;
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const { mutate: createAuditLog } = useMutation({
@@ -48,6 +51,15 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
     },
     onError: (err) => toast.error((err as Error).message),
   });
+  const { mutate: toggleAdminRole } = useMutation({
+    mutationFn: ({ memberId, newRole }: { memberId: string; newRole: 'admin' | 'member' }) =>
+      api(`/api/members/${memberId}/role`, { method: 'PUT', body: JSON.stringify({ role: newRole }) }),
+    onSuccess: () => {
+      toast.success("Member's role updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['messState'] });
+    },
+    onError: (err) => toast.error(`Failed to update role: ${(err as Error).message}`),
+  });
   const { totalContribution, totalSpent, balance, membersWithExpenses } = useMemo(() => {
     if (!messState) return { totalContribution: 0, totalSpent: 0, balance: 0, membersWithExpenses: [] };
     const totalContribution = messState.members.reduce((sum, m) => sum + m.contribution, 0);
@@ -63,11 +75,12 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
   }, [messState]);
   const handleDownloadReport = () => {
     try {
+      const userName = member?.name || 'Super Admin';
       exportAdminReport(membersWithExpenses, messState.expenses, (log) => {
         createAuditLog({
           ...log,
-          userId: 'admin',
-          userName: 'Admin',
+          userId: member?.id || 'super_admin',
+          userName: userName,
           deviceInfo: getDeviceInfo(),
         });
       });
@@ -101,7 +114,13 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
         <Card className="shadow-lg">
           <CardContent className="p-6">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800">Members Overview</h2>
-            <MembersTable members={membersWithExpenses} onEdit={(member) => setEditingMember(member)} onDelete={deleteMember} />
+            <MembersTable
+              members={membersWithExpenses}
+              onEdit={(member) => setEditingMember(member)}
+              onDelete={deleteMember}
+              isSuperAdmin={isSuperAdmin}
+              onToggleAdmin={toggleAdminRole}
+            />
           </CardContent>
         </Card>
         <Card className="shadow-lg">

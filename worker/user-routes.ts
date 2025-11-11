@@ -26,19 +26,18 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     let page = await MemberEntity.list(c.env);
     if (page.items.length === 0) {
       const settings = await new MessSettingsEntity(c.env).getState();
-      const mockMembersData: { name: string; type: MemberType }[] = [
-        { name: 'Alice', type: 'standard' },
-        { name: 'Bob', type: 'standard' },
-        { name: 'Charlie', type: 'reduced' },
+      const mockMembersData: { name: string; type: MemberType, role: 'admin' | 'member' }[] = [
+        { name: 'Alice', type: 'standard', role: 'admin' },
+        { name: 'Bob', type: 'standard', role: 'member' },
+        { name: 'Charlie', type: 'reduced', role: 'member' },
       ];
-
       const newMembers: Member[] = mockMembersData.map((m) => ({
         id: crypto.randomUUID(),
         name: m.name,
         type: m.type,
+        role: m.role,
         contribution: m.type === 'standard' ? settings.standardContribution : settings.reducedContribution,
       }));
-
       await Promise.all(newMembers.map((m) => MemberEntity.create(c.env, m)));
       page = await MemberEntity.list(c.env); // Re-fetch to get the created members
     }
@@ -49,7 +48,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!isStr(name) || !['standard', 'reduced'].includes(type!)) return bad(c, 'Name and type are required');
     const settings = await new MessSettingsEntity(c.env).getState();
     const contribution = type === 'standard' ? settings.standardContribution : settings.reducedContribution;
-    const member: Member = { id: crypto.randomUUID(), name, type: type!, contribution };
+    const member: Member = { id: crypto.randomUUID(), name, type: type!, contribution, role: 'member' };
     await MemberEntity.create(c.env, member);
     await AuditLogEntity.create(c.env, {
       id: crypto.randomUUID(),
@@ -92,6 +91,18 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       metadata: { memberId: newMember.id, changes: updatePayload },
     });
     return ok(c, newMember);
+  });
+  app.put('/api/members/:id/role', async (c) => {
+    const id = c.req.param('id');
+    const { role } = (await c.req.json()) as { role: 'admin' | 'member' };
+    if (!['admin', 'member'].includes(role)) {
+      return bad(c, 'Invalid role specified');
+    }
+    const memberEntity = new MemberEntity(c.env, id);
+    if (!(await memberEntity.exists())) return notFound(c, 'Member not found');
+    await memberEntity.patch({ role });
+    const updatedMember = await memberEntity.getState();
+    return ok(c, updatedMember);
   });
   app.delete('/api/members/:id', async (c) => {
     const id = c.req.param('id');

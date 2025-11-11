@@ -20,6 +20,11 @@ const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
   },
   {
+    path: "/login/:memberId",
+    element: <LoginPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
     path: "/admin/dashboard",
     element: (
       <ProtectedRoute allowedRole="admin">
