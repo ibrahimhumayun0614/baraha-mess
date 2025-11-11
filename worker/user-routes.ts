@@ -4,8 +4,8 @@ import { MessSettingsEntity, MemberEntity, ExpenseEntity, AuditLogEntity } from 
 import { ok, bad, notFound, isStr } from './core-utils';
 import type { Member, MemberType, Expense, AuditLog } from "@shared/types";
 import { hashPassword } from "./auth-utils";
-// In a real application, this would be a secret managed by Wrangler secrets.
-const SUPER_ADMIN_PASSWORD_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // "password"
+// Updated super admin password to 'Muhammed97@#'
+const SUPER_ADMIN_PASSWORD_HASH = 'f2a398851346259a7c538813700754194545e12b7b51e13e51d3b141';
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // AUTH
   app.post('/api/auth/login', async (c) => {
