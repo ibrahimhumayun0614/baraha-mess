@@ -55,7 +55,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
       toast.error(`Failed to ${isEditMode ? 'update' : 'log'} expense: ${error.message}`);
     },
   });
-  function onSubmit(values: FormValues) {
+  function onSubmit(values: z.infer<typeof ExpenseFormSchema>) {
     mutation.mutate(values);
   }
   return (
@@ -92,7 +92,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
             <FormItem>
               <FormLabel>Amount (AED)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="e.g., 50.75" {...field} />
+                <Input type="number" step="0.01" placeholder="e.g., 50.75" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>

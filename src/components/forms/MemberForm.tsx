@@ -45,7 +45,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
       toast.error(`Failed to save member: ${error.message}`);
     },
   });
-  function onSubmit(values: FormValues) {
+  function onSubmit(values: z.infer<typeof MemberFormSchema>) {
     mutation.mutate(values);
   }
   return (
@@ -93,7 +93,7 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
               <FormItem>
                 <FormLabel>Contribution (AED)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 450" {...field} />
+                  <Input type="number" placeholder="e.g., 450" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -16,7 +16,7 @@ export class MessSettingsEntity extends Entity<MessSettings> {
 export class MemberEntity extends IndexedEntity<Member> {
   static readonly entityName = "member";
   static readonly indexName = "members";
-  static readonly initialState: Member = { id: "", name: "", type: 'standard', contribution: 0, role: 'member' };
+  static readonly initialState: Member = { id: "", name: "", type: 'standard', contribution: 0, role: 'member', password: undefined };
 }
 export class ExpenseEntity extends IndexedEntity<Expense> {
   static readonly entityName = "expense";
