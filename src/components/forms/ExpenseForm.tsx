@@ -12,84 +12,73 @@ import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
 import { useAuthStore } from '@/hooks/use-auth-store';
-import type { Member, Expense } from '@shared/types';
-const ExpenseFormSchema = z.object({
+import type { Member } from '@shared/types';
+const formSchema = z.object({
   memberId: z.string().min(1, 'Please select a member'),
   amount: z.coerce.number().positive('Amount must be positive'),
   date: z.string().min(1, 'Date is required'),
   note: z.string().optional(),
 });
-type FormValues = z.infer<typeof ExpenseFormSchema>;
 interface ExpenseFormProps {
   members: Member[];
-  expense?: Expense;
   onSuccess: () => void;
 }
-const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
+const ExpenseForm = ({ members, onSuccess }: ExpenseFormProps) => {
   const queryClient = useQueryClient();
-  const loggedInMember = useAuthStore((state) => state.member);
-  const isEditMode = !!expense;
-  const form = useForm({
-    resolver: zodResolver(ExpenseFormSchema),
+  const { role, member: loggedInMember } = useAuthStore((state) => ({ role: state.role, member: state.member }));
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      memberId: expense?.memberId || '',
-      amount: expense?.amount || undefined,
-      date: expense ? format(new Date(expense.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-      note: expense?.note || '',
+      memberId: role === 'member' ? loggedInMember?.id : '',
+      amount: 0,
+      date: format(new Date(), 'yyyy-MM-dd'),
+      note: '',
     },
   });
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => {
-      const endpoint = isEditMode ? `/api/expenses/${expense.id}` : '/api/expenses';
-      const method = isEditMode ? 'PUT' : 'POST';
-      const loggedInUser = loggedInMember || { id: 'admin', name: 'Admin' };
-      const payload = isEditMode
-        ? values
-        : {
-            ...values,
-            deviceInfo: getDeviceInfo(),
-            addedById: loggedInUser.id,
-            addedByName: loggedInUser.name,
-          };
-      return api(endpoint, { method, body: JSON.stringify(payload) });
+    mutationFn: (values: z.infer<typeof formSchema>) => {
+      const payload = { ...values, deviceInfo: getDeviceInfo() };
+      return api('/api/expenses', { method: 'POST', body: JSON.stringify(payload) });
     },
     onSuccess: () => {
-      toast.success(`Expense ${isEditMode ? 'updated' : 'logged'} successfully!`);
+      toast.success('Expense logged successfully!');
       queryClient.invalidateQueries({ queryKey: ['messState'] });
       onSuccess();
     },
     onError: (error) => {
-      toast.error(`Failed to ${isEditMode ? 'update' : 'log'} expense: ${error.message}`);
+      toast.error(`Failed to log expense: ${error.message}`);
     },
   });
-  function onSubmit(values: z.infer<typeof ExpenseFormSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate(values);
   }
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="memberId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Paid By</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a member" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {members.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {role === 'admin' && (
+          <FormField
+            control={form.control}
+            name="memberId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Member</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a member" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {members.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <FormField
           control={form.control}
           name="amount"
@@ -97,7 +86,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
             <FormItem>
               <FormLabel>Amount (AED)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="e.g., 50.75" {...field} value={field.value === undefined ? '' : String(field.value)} />
+                <Input type="number" step="0.01" placeholder="e.g., 50.75" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -130,7 +119,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
           )}
         />
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? (isEditMode ? 'Updating...' : 'Logging...') : (isEditMode ? 'Update Expense' : 'Log Expense')}
+          {mutation.isPending ? 'Logging...' : 'Log Expense'}
         </Button>
       </form>
     </Form>
