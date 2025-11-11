@@ -8,12 +8,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api-client';
 import type { MessSettings } from '@shared/types';
-const formSchema = z.object({
+const SetupMessFormSchema = z.object({
   standardContribution: z.coerce.number().min(0, 'Must be a positive number'),
   reducedContribution: z.coerce.number().min(0, 'Must be a positive number'),
   totalDays: z.coerce.number().int().min(1, 'Must be at least 1 day'),
 });
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof SetupMessFormSchema>;
 interface SetupMessFormProps {
   settings?: MessSettings;
   onSuccess: () => void;
@@ -21,7 +21,7 @@ interface SetupMessFormProps {
 const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
   const queryClient = useQueryClient();
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(SetupMessFormSchema),
     defaultValues: {
       standardContribution: settings?.standardContribution || 450,
       reducedContribution: settings?.reducedContribution || 250,
