@@ -28,7 +28,7 @@ export interface MessSettings {
   totalDays: number;
   initialized: boolean;
 }
-export type AuditLogEvent = 'login' | 'expense_created' | 'expense_updated' | 'expense_deleted' | 'member_created' | 'member_updated' | 'member_deleted' | 'report_download';
+export type AuditLogEvent = 'login' | 'expense_created' | 'expense_updated' | 'expense_deleted' | 'member_created' | 'member_updated' | 'member_deleted' | 'report_download' | 'mess_reset';
 export interface AuditLog {
   id: string;
   event: AuditLogEvent;

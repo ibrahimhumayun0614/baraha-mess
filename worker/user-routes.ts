@@ -71,14 +71,18 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const settings = new MessSettingsEntity(c.env);
     await settings.patch({ standardContribution, reducedContribution, totalDays, initialized: true });
     if (resetData) {
-      // 1. Delete all expenses
-      const allExpenses = await listAll<Expense>(ExpenseEntity, c.env);
-      const expenseIds = allExpenses.map(e => e.id);
-      if (expenseIds.length > 0) {
-        await ExpenseEntity.deleteMany(c.env, expenseIds);
-      }
+      // 1. Create audit log for mess reset
+      await AuditLogEntity.create(c.env, {
+        id: crypto.randomUUID(),
+        event: 'mess_reset',
+        userId: 'admin',
+        userName: 'Admin',
+        timestamp: new Date().toISOString(),
+        deviceInfo: c.req.header('User-Agent') || 'Unknown',
+        metadata: { standardContribution, reducedContribution, totalDays },
+      });
       // 2. Recalculate contributions for all members
-      const allMembers = await listAll<Member>(MemberEntity, c.env);
+      const allMembers: Member[] = await listAll(MemberEntity, c.env);
       for (const member of allMembers) {
         const memberEntity = new MemberEntity(c.env, member.id);
         const memberDays = member.days ?? totalDays;
@@ -92,7 +96,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/mess/state', async (c) => {
     const settings = new MessSettingsEntity(c.env);
     const state = await settings.getState();
-    const members = await listAll<Member>(MemberEntity, c.env);
+    const members: Member[] = await listAll(MemberEntity, c.env);
     const expenses = await listAll<Expense>(ExpenseEntity, c.env);
     const auditLogs = await listAll<AuditLog>(AuditLogEntity, c.env);
     // Strip passwords before sending to client
@@ -104,7 +108,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // MEMBERS
   app.get('/api/members', async (c) => {
-    let members = await listAll<Member>(MemberEntity, c.env);
+    let members: Member[] = await listAll(MemberEntity, c.env);
     if (members.length === 0) {
       const settings = await new MessSettingsEntity(c.env).getState();
       const mockMembersData: { name: string; type: MemberType, role: 'admin' | 'member' }[] = [
@@ -126,7 +130,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         alice.password = await hashPassword('password');
       }
       await Promise.all(newMembers.map((m) => MemberEntity.create(c.env, m)));
-      members = await listAll<Member>(MemberEntity, c.env); // Re-fetch to get the created members
+      members = await listAll(MemberEntity, c.env); // Re-fetch to get the created members
     }
     // Strip passwords before sending to client
     const membersWithoutPasswords = members.map(m => {
