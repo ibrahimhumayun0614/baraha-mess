@@ -10,6 +10,7 @@ export interface Member {
   type: MemberType;
   contribution: number;
   role: 'admin' | 'member';
+  password?: string;
 }
 export interface Expense {
   id:string;

@@ -17,6 +17,7 @@ import DashboardActions from '@/components/dashboard/DashboardActions';
 import MemberForm from '@/components/forms/MemberForm';
 import ExpenseForm from '@/components/forms/ExpenseForm';
 import { exportAdminReport } from '@/lib/reporting';
+import SetAdminPasswordDialog from './SetAdminPasswordDialog';
 interface MessState {
   settings: MessSettings;
   members: Member[];
@@ -31,6 +32,7 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
   const isSuperAdmin = role === 'admin' && !member;
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [promotingMember, setPromotingMember] = useState<Member | null>(null);
   const { mutate: createAuditLog } = useMutation({
     mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
     onError: (err) => console.error("Failed to create audit log:", err),
@@ -52,11 +54,12 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
     onError: (err) => toast.error((err as Error).message),
   });
   const { mutate: toggleAdminRole } = useMutation({
-    mutationFn: ({ memberId, newRole }: { memberId: string; newRole: 'admin' | 'member' }) =>
-      api(`/api/members/${memberId}/role`, { method: 'PUT', body: JSON.stringify({ role: newRole }) }),
+    mutationFn: ({ memberId, newRole, password }: { memberId: string; newRole: 'admin' | 'member'; password?: string }) =>
+      api(`/api/members/${memberId}/role`, { method: 'PUT', body: JSON.stringify({ role: newRole, password }) }),
     onSuccess: () => {
       toast.success("Member's role updated successfully");
       queryClient.invalidateQueries({ queryKey: ['messState'] });
+      setPromotingMember(null);
     },
     onError: (err) => toast.error(`Failed to update role: ${(err as Error).message}`),
   });
@@ -120,6 +123,7 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
               onDelete={deleteMember}
               isSuperAdmin={isSuperAdmin}
               onToggleAdmin={toggleAdminRole}
+              onPromote={(member) => setPromotingMember(member)}
             />
           </CardContent>
         </Card>
@@ -151,6 +155,13 @@ const AdminDashboard = ({ messState }: AdminDashboardProps) => {
           {editingExpense && <ExpenseForm expense={editingExpense} members={messState.members} onSuccess={() => setEditingExpense(null)} />}
         </DialogContent>
       </Dialog>
+      {promotingMember && (
+        <SetAdminPasswordDialog
+          member={promotingMember}
+          onClose={() => setPromotingMember(null)}
+          onConfirm={(password) => toggleAdminRole({ memberId: promotingMember.id, newRole: 'admin', password })}
+        />
+      )}
     </main>
   );
 };

@@ -27,8 +27,9 @@ interface MembersTableProps {
   onDelete: (id: string) => void;
   isSuperAdmin?: boolean;
   onToggleAdmin?: (args: { memberId: string; newRole: 'admin' | 'member' }) => void;
+  onPromote?: (member: Member) => void;
 }
-const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin }: MembersTableProps) => {
+const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, onPromote }: MembersTableProps) => {
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(amount);
   return (
     <div className="rounded-lg border">
@@ -81,7 +82,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin }
                         <>
                           <DropdownMenuSeparator />
                           {member.role === 'member' ? (
-                            <DropdownMenuItem onClick={() => onToggleAdmin({ memberId: member.id, newRole: 'admin' })}>
+                            <DropdownMenuItem onClick={() => onPromote?.(member)}>
                               <ShieldCheck className="mr-2 h-4 w-4" />
                               <span>Promote to Admin</span>
                             </DropdownMenuItem>
