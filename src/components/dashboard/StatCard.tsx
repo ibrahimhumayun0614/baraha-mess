@@ -28,7 +28,7 @@ const StatCard = ({ title, value, icon: Icon, formatAsCurrency = false, isPositi
           <CardContent>
             <div
               className={cn(
-                'text-3xl font-bold',
+                'text-2xl sm:text-3xl font-bold',
                 isPositive === true && 'text-green-600',
                 isPositive === false && 'text-red-600'
               )}
