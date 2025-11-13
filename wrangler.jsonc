@@ -4,7 +4,7 @@
  */
  {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "dineflow-mess-manage-3pgswyvi0c53gwed10jvi",
+	"name": "barahamess-2025",
 	"main": "worker/index.ts",
 	"compatibility_date": "2025-04-24",
 	"assets": {
