@@ -27,13 +27,12 @@ interface ExpenseFormProps {
 }
 const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
   const queryClient = useQueryClient();
-  const role = useAuthStore((state) => state.role);
   const loggedInMember = useAuthStore((state) => state.member);
   const isEditMode = !!expense;
   const form = useForm({
     resolver: zodResolver(ExpenseFormSchema),
     defaultValues: {
-      memberId: expense?.memberId || (role === 'member' ? loggedInMember?.id : ''),
+      memberId: expense?.memberId || '',
       amount: expense?.amount || undefined,
       date: expense ? format(new Date(expense.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       note: expense?.note || '',
@@ -43,7 +42,15 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
     mutationFn: (values: FormValues) => {
       const endpoint = isEditMode ? `/api/expenses/${expense.id}` : '/api/expenses';
       const method = isEditMode ? 'PUT' : 'POST';
-      const payload = isEditMode ? values : { ...values, deviceInfo: getDeviceInfo() };
+      const loggedInUser = loggedInMember || { id: 'admin', name: 'Admin' };
+      const payload = isEditMode
+        ? values
+        : {
+            ...values,
+            deviceInfo: getDeviceInfo(),
+            addedById: loggedInUser.id,
+            addedByName: loggedInUser.name,
+          };
       return api(endpoint, { method, body: JSON.stringify(payload) });
     },
     onSuccess: () => {
@@ -61,30 +68,28 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {role === 'admin' && (
-          <FormField
-            control={form.control}
-            name="memberId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Member</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditMode}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a member" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {members.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+        <FormField
+          control={form.control}
+          name="memberId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Paid By</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditMode}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a member" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {members.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="amount"
