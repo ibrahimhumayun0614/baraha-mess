@@ -74,7 +74,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Paid By</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditMode}>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a member" />
@@ -97,7 +97,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
             <FormItem>
               <FormLabel>Amount (AED)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="e.g., 50.75" {...field} value={String(field.value ?? '')} />
+                <Input type="number" step="0.01" placeholder="e.g., 50.75" {...field} value={field.value === undefined ? '' : String(field.value)} />
               </FormControl>
               <FormMessage />
             </FormItem>

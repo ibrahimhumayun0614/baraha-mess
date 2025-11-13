@@ -267,10 +267,11 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   app.put('/api/expenses/:id', async (c) => {
     const id = c.req.param('id');
-    const { amount, date, note } = (await c.req.json()) as Partial<Expense>;
+    const { memberId, amount, date, note } = (await c.req.json()) as Partial<Expense>;
     const expenseEntity = new ExpenseEntity(c.env, id);
     if (!(await expenseEntity.exists())) return notFound(c, 'Expense not found');
     const updatePayload: Partial<Expense> = {};
+    if (isStr(memberId)) updatePayload.memberId = memberId;
     if (typeof amount === 'number') updatePayload.amount = amount;
     if (isStr(date)) updatePayload.date = date;
     if (note !== undefined) updatePayload.note = note;
