@@ -31,7 +31,8 @@ const ExpensesTable = ({ expenses, members, onEdit, onDelete }: ExpensesTablePro
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Member</TableHead>
+            <TableHead>Paid By</TableHead>
+            <TableHead>Added By</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Note</TableHead>
             <TableHead className="text-right">Amount</TableHead>
@@ -43,6 +44,7 @@ const ExpensesTable = ({ expenses, members, onEdit, onDelete }: ExpensesTablePro
             expenses.map((expense) => (
               <TableRow key={expense.id}>
                 <TableCell className="font-medium whitespace-nowrap">{memberMap.get(expense.memberId) || 'Unknown'}</TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{expense.addedByName}</TableCell>
                 <TableCell className="whitespace-nowrap">{format(new Date(expense.date), 'PP')}</TableCell>
                 <TableCell className="text-muted-foreground">{expense.note || '-'}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">{formatCurrency(expense.amount)}</TableCell>
@@ -76,7 +78,7 @@ const ExpensesTable = ({ expenses, members, onEdit, onDelete }: ExpensesTablePro
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={hasActions ? 5 : 4} className="h-24 text-center">
+              <TableCell colSpan={hasActions ? 6 : 5} className="h-24 text-center">
                 No expenses found.
               </TableCell>
             </TableRow>

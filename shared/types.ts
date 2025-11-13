@@ -20,6 +20,8 @@ export interface Expense {
   date: string; // ISO string
   note?: string;
   deviceInfo: string;
+  addedById: string;
+  addedByName: string;
 }
 export interface MessSettings {
   id: 'global'; // Singleton

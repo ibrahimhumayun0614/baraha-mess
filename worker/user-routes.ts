@@ -242,21 +242,26 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     return ok(c, expenses);
   });
   app.post('/api/expenses', async (c) => {
-    const { memberId, amount, date, note, deviceInfo } = (await c.req.json()) as Partial<Expense>;
-    if (!isStr(memberId) || typeof amount !== 'number' || !isStr(date) || !isStr(deviceInfo)) {
-      return bad(c, 'Member ID, amount, date, and device info are required');
+    const { memberId, amount, date, note, deviceInfo, addedById, addedByName } = (await c.req.json()) as Partial<Expense>;
+    if (!isStr(memberId) || typeof amount !== 'number' || !isStr(date) || !isStr(deviceInfo) || !isStr(addedById) || !isStr(addedByName)) {
+      return bad(c, 'All fields are required');
     }
-    const expense: Expense = { id: crypto.randomUUID(), memberId, amount, date, note, deviceInfo };
+    const expense: Expense = { id: crypto.randomUUID(), memberId, amount, date, note, deviceInfo, addedById, addedByName };
     await ExpenseEntity.create(c.env, expense);
     const member = await new MemberEntity(c.env, memberId).getState();
     await AuditLogEntity.create(c.env, {
       id: crypto.randomUUID(),
       event: 'expense_created',
-      userId: memberId,
-      userName: member.name,
+      userId: addedById,
+      userName: addedByName,
       timestamp: new Date().toISOString(),
       deviceInfo,
-      metadata: { expenseId: expense.id, amount: expense.amount },
+      metadata: {
+        expenseId: expense.id,
+        amount: expense.amount,
+        paidById: memberId,
+        paidByName: member.name,
+      },
     });
     return ok(c, expense);
   });

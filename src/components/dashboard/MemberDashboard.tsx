@@ -80,7 +80,7 @@ const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
               <DialogHeader>
                 <DialogTitle>Log a New Expense</DialogTitle>
               </DialogHeader>
-              <ExpenseForm members={[currentUser]} onSuccess={() => setExpenseOpen(false)} />
+              <ExpenseForm members={messState.members} onSuccess={() => setExpenseOpen(false)} />
             </DialogContent>
           </Dialog>
           <Button onClick={handleDownloadReport} variant="outline">
@@ -109,7 +109,7 @@ const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
             <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Expense History</h2>
             <ExpensesTable
               expenses={myExpenses}
-              members={[currentUser]}
+              members={messState.members}
             />
           </CardContent>
         </Card>
