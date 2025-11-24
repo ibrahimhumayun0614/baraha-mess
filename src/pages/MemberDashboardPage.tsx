@@ -57,11 +57,7 @@ export function MemberDashboardPage() {
     }
     if (messState) {
       return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-8 md:py-10 lg:py-12">
-            <MemberDashboard messState={messState} currentUser={currentUser} />
-          </div>
-        </div>
+        <MemberDashboard messState={messState} currentUser={currentUser} />
       );
     }
     return null;

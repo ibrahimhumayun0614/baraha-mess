@@ -62,59 +62,61 @@ const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
     }
   };
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-4 bg-white rounded-lg shadow-md">
-        <div className="text-center md:text-left">
-          <h2 className="text-xl font-semibold text-gray-800">My Dashboard</h2>
-          <p className="text-sm text-muted-foreground">Here's your personal mess summary.</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="py-8 md:py-10 lg:py-12">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-4 bg-white rounded-lg shadow-md">
+                <div className="text-center md:text-left">
+                <h2 className="text-xl font-semibold text-gray-800">My Dashboard</h2>
+                <p className="text-sm text-muted-foreground">Here's your personal mess summary.</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                <Dialog open={isExpenseOpen} onOpenChange={setExpenseOpen}>
+                    <DialogTrigger asChild>
+                    <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Expense
+                    </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Log a New Expense</DialogTitle>
+                    </DialogHeader>
+                    <ExpenseForm members={messState.members} onSuccess={() => setExpenseOpen(false)} />
+                    </DialogContent>
+                </Dialog>
+                <Button onClick={handleDownloadReport} variant="outline">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download My Report
+                </Button>
+                </div>
+            </div>
+            <motion.div
+                className="grid gap-6 grid-cols-2 lg:grid-cols-4 mt-8"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.1 } }
+                }}
+            >
+                <StatCard title="My Contribution" value={currentUser.contribution} icon={DollarSign} formatAsCurrency />
+                <StatCard title="My Total Spent" value={myTotalSpent} icon={ShoppingCart} formatAsCurrency />
+                <StatCard title="My Remaining Balance" value={myBalance} icon={Wallet} formatAsCurrency isPositive={myBalance >= 0} />
+                <StatCard title="Adjusted Daily Rate" value={adjustedDailyRate} icon={TrendingUp} formatAsCurrency isPositive={adjustedDailyRate >= 0} />
+            </motion.div>
+            <div className="mt-10">
+                <Card className="shadow-lg">
+                <CardContent className="p-6">
+                    <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Expense History</h2>
+                    <ExpensesTable
+                    expenses={myExpenses}
+                    members={messState.members}
+                    />
+                </CardContent>
+                </Card>
+            </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Dialog open={isExpenseOpen} onOpenChange={setExpenseOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Expense
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Log a New Expense</DialogTitle>
-              </DialogHeader>
-              <ExpenseForm members={messState.members} onSuccess={() => setExpenseOpen(false)} />
-            </DialogContent>
-          </Dialog>
-          <Button onClick={handleDownloadReport} variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Download My Report
-          </Button>
-        </div>
-      </div>
-      <motion.div
-        className="grid gap-6 grid-cols-2 lg:grid-cols-4 mt-8"
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: {},
-          visible: { transition: { staggerChildren: 0.1 } }
-        }}
-      >
-        <StatCard title="My Contribution" value={currentUser.contribution} icon={DollarSign} formatAsCurrency />
-        <StatCard title="My Total Spent" value={myTotalSpent} icon={ShoppingCart} formatAsCurrency />
-        <StatCard title="My Remaining Balance" value={myBalance} icon={Wallet} formatAsCurrency isPositive={myBalance >= 0} />
-        <StatCard title="Adjusted Daily Rate" value={adjustedDailyRate} icon={TrendingUp} formatAsCurrency isPositive={adjustedDailyRate >= 0} />
-      </motion.div>
-      <div className="mt-10">
-        <Card className="shadow-lg">
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Expense History</h2>
-            <ExpensesTable
-              expenses={myExpenses}
-              members={messState.members}
-            />
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+    </div>
   );
 };
 export default MemberDashboard;

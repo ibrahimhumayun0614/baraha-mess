@@ -137,7 +137,7 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
     }
   };
   return (
-    <div className="py-8 md:py-10">
+    <div className="py-8 md:py-10 lg:py-12">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <DashboardActions settings={messState?.settings} members={messState?.members || []} />
         <div className="flex flex-col items-stretch sm:items-end space-y-2 w-full md:w-auto">
