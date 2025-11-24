@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { DollarSign, Users, ShoppingCart, Download, TrendingUp, KeyRound, History, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DateRange } from 'react-day-picker';
+import { startOfDay, endOfDay } from 'date-fns';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
 import { useAuthStore } from '@/hooks/use-auth-store';
@@ -42,17 +43,9 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
   const [resettingPasswordFor, setResettingPasswordFor] = useState<Member | null>(null);
   const [isChangePasswordOpen, setChangePasswordOpen] = useState(false);
   const [expenseFilters, setExpenseFilters] = useState<any>({ period: 'current' });
-  const [filteredExpensesForReport, setFilteredExpensesForReport] = useState<Expense[]>([]);
   const { data: expenses = [] } = useQuery<Expense[]>({
-    queryKey: ['expenses', expenseFilters],
-    queryFn: () => {
-      const params = new URLSearchParams();
-      if (expenseFilters.dateRange?.from) params.append('fromDate', expenseFilters.dateRange.from.toISOString());
-      if (expenseFilters.dateRange?.to) params.append('toDate', expenseFilters.dateRange.to.toISOString());
-      if (expenseFilters.period && expenseFilters.period !== 'all') params.append('period', expenseFilters.period);
-      // Add other filters if needed for API-level filtering
-      return api(`/api/expenses?${params.toString()}`);
-    },
+    queryKey: ['expenses'], // Fetch all expenses once
+    queryFn: () => api(`/api/expenses`),
     placeholderData: [],
   });
   const { mutate: createAuditLog } = useMutation({
@@ -109,6 +102,32 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
     },
     onError: (err) => toast.error(`Failed to clear audit logs: ${(err as Error).message}`),
   });
+  const memberMap = useMemo(() => new Map(messState.members.map((m) => [m.id, m.name])), [messState.members]);
+  const filteredExpensesForReport = useMemo(() => {
+    return expenses.filter(expense => {
+      if (expenseFilters.search) {
+        const searchTerm = expenseFilters.search.toLowerCase();
+        const memberName = memberMap.get(expense.memberId)?.toLowerCase() || '';
+        const addedByName = expense.addedByName.toLowerCase();
+        const note = expense.note?.toLowerCase() || '';
+        const amount = expense.amount.toString();
+        if (!memberName.includes(searchTerm) && !addedByName.includes(searchTerm) && !note.includes(searchTerm) && !amount.includes(searchTerm)) {
+          return false;
+        }
+      }
+      if (expenseFilters.memberId && expenseFilters.memberId !== 'all' && expense.memberId !== expenseFilters.memberId) return false;
+      if (expenseFilters.addedById && expenseFilters.addedById !== 'all' && expense.addedById !== expenseFilters.addedById) return false;
+      if (expenseFilters.period && expenseFilters.period !== 'all') {
+        if (expenseFilters.period === 'current' && expense.period) return false;
+        if (expenseFilters.period !== 'current' && expense.period !== expenseFilters.period) return false;
+      }
+      if (expenseFilters.dateRange?.from && new Date(expense.date) < startOfDay(expenseFilters.dateRange.from)) return false;
+      if (expenseFilters.dateRange?.to && new Date(expense.date) > endOfDay(expenseFilters.dateRange.to)) return false;
+      if (expenseFilters.minAmount && expense.amount < parseFloat(expenseFilters.minAmount)) return false;
+      if (expenseFilters.maxAmount && expense.amount > parseFloat(expenseFilters.maxAmount)) return false;
+      return true;
+    });
+  }, [expenses, expenseFilters, memberMap]);
   const { totalContribution, totalSpent, balance, membersWithExpenses, adjustedDailyRate } = useMemo(() => {
     if (!messState) return { totalContribution: 0, totalSpent: 0, balance: 0, membersWithExpenses: [], adjustedDailyRate: 0 };
     const currentExpenses = expenses.filter(e => !e.period);
@@ -151,18 +170,18 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
       console.error(error);
     }
   };
-  const isFiltersActive = expenseFilters.period !== 'current' || expenseFilters.dateRange;
+  const isFiltersActive = expenseFilters.period !== 'current' || expenseFilters.dateRange || expenseFilters.search || expenseFilters.memberId !== 'all' || expenseFilters.addedById !== 'all' || expenseFilters.minAmount || expenseFilters.maxAmount;
   return (
     <div className="py-8 md:py-10 lg:py-12">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <DashboardActions settings={messState?.settings} members={messState?.members || []} />
         <div className="flex flex-col items-stretch sm:items-end space-y-2 w-full md:w-auto">
-          <Button onClick={handleDownloadReport} variant="outline" className="w-full sm:w-auto">
+          <Button onClick={handleDownloadReport} variant="outline" className="w-full sm:w-auto transition-transform hover:scale-105">
             <Download className="mr-2 h-4 w-4" />
             Download Report
           </Button>
           {isSuperAdmin && (
-            <Button onClick={() => setChangePasswordOpen(true)} variant="secondary" className="w-full sm:w-auto">
+            <Button onClick={() => setChangePasswordOpen(true)} variant="secondary" className="w-full sm:w-auto transition-transform hover:scale-105">
               <KeyRound className="mr-2 h-4 w-4" />
               Change My Password
             </Button>
@@ -182,56 +201,52 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
         <StatCard title="Total Members" value={messState?.members.length || 0} icon={Users} />
       </motion.div>
       <div className="mt-10 space-y-10">
-        <Card className="shadow-lg">
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Members Overview</h2>
-            <MembersTable
-              members={membersWithExpenses}
-              onEdit={(member) => setEditingMember(member)}
-              onDelete={deleteMember}
-              isSuperAdmin={isSuperAdmin}
-              onToggleAdmin={toggleAdminRole}
-              onPromote={(member) => setPromotingMember(member)}
-              onResetPassword={(member) => setResettingPasswordFor(member)}
-            />
-          </CardContent>
-        </Card>
-        <Card className="shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-              <h2 className="text-2xl font-semibold text-gray-800">Expenses History</h2>
-              {isFiltersActive && <Badge variant="secondary" className="flex items-center gap-2">Filtered View <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => setExpenseFilters({ period: 'current' })}><XCircle className="h-3 w-3" /></Button></Badge>}
-            </div>
-            <ExpensesTable
-              expenses={expenses}
-              members={messState?.members || []}
-              onEdit={(expense) => setEditingExpense(expense)}
-              onDelete={deleteExpense}
-              onFiltersChange={(filters) => {
-                setExpenseFilters(filters);
-                // This is a trick to get the filtered data for the report
-                // A better way would be to pass a ref to ExpensesTable
-                const dummyDiv = document.createElement('div');
-                const table = new ExpensesTable({ expenses, members, onFiltersChange: () => {} });
-                const filtered = table.useMemo(() => expenses.filter(e => true), [expenses, filters.search]);
-                // This part is tricky without direct access to the filtered list.
-                // For now, we'll just pass all expenses to the report.
-                setFilteredExpensesForReport(expenses);
-              }}
-            />
-          </CardContent>
-        </Card>
-        {isSuperAdmin && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
           <Card className="shadow-lg">
             <CardContent className="p-6">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-800">Audit Logs</h2>
-              <AuditLogsTable
-                auditLogs={messState?.auditLogs || []}
-                onClearLogs={clearAuditLogs}
-                onDownloadLogs={handleDownloadLogs}
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800">Members Overview</h2>
+              <MembersTable
+                members={membersWithExpenses}
+                onEdit={(member) => setEditingMember(member)}
+                onDelete={deleteMember}
+                isSuperAdmin={isSuperAdmin}
+                onToggleAdmin={toggleAdminRole}
+                onPromote={(member) => setPromotingMember(member)}
+                onResetPassword={(member) => setResettingPasswordFor(member)}
               />
             </CardContent>
           </Card>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+          <Card className="shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                <h2 className="text-2xl font-semibold text-gray-800">Expenses History</h2>
+                {isFiltersActive && <Badge variant="secondary" className="flex items-center gap-2">Filtered View <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => setExpenseFilters({ period: 'current', memberId: 'all', addedById: 'all' })}><XCircle className="h-3 w-3" /></Button></Badge>}
+              </div>
+              <ExpensesTable
+                expenses={expenses}
+                members={messState?.members || []}
+                onEdit={(expense) => setEditingExpense(expense)}
+                onDelete={deleteExpense}
+                onFiltersChange={setExpenseFilters}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
+        {isSuperAdmin && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
+            <Card className="shadow-lg">
+              <CardContent className="p-6">
+                <h2 className="text-2xl font-semibold mb-4 text-gray-800">Audit Logs</h2>
+                <AuditLogsTable
+                  auditLogs={messState?.auditLogs || []}
+                  onClearLogs={clearAuditLogs}
+                  onDownloadLogs={handleDownloadLogs}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
       </div>
       <Dialog open={!!editingMember} onOpenChange={(isOpen) => !isOpen && setEditingMember(null)}>
