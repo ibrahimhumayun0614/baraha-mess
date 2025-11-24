@@ -22,6 +22,7 @@ export interface Expense {
   deviceInfo: string;
   addedById: string;
   addedByName: string;
+  period?: string; // e.g., '2024-10'
 }
 export interface MessSettings {
   id: 'global'; // Singleton

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { DollarSign, ShoppingCart, Wallet, PlusCircle, Download, TrendingUp } from 'lucide-react';
 import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
 import { api } from '@/lib/api-client';
@@ -16,7 +16,6 @@ import { exportMemberReport } from '@/lib/reporting';
 interface MessState {
   settings: MessSettings;
   members: Member[];
-  expenses: Expense[];
   auditLogs: AuditLog[];
 }
 interface MemberDashboardProps {
@@ -25,21 +24,29 @@ interface MemberDashboardProps {
 }
 const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
   const [isExpenseOpen, setExpenseOpen] = useState(false);
+  const [expenseFilters, setExpenseFilters] = useState<any>({ period: 'all' });
+  const { data: allMyExpenses = [] } = useQuery<Expense[]>({
+    queryKey: ['expenses', { memberId: currentUser.id }],
+    queryFn: () => api(`/api/expenses?memberId=${currentUser.id}`),
+    placeholderData: [],
+  });
   const { mutate: createAuditLog } = useMutation({
     mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
     onError: (err) => console.error("Failed to create audit log:", err),
   });
-  const { myExpenses, myTotalSpent, myBalance, adjustedDailyRate } = useMemo(() => {
-    const myExpenses = messState.expenses.filter(e => e.memberId === currentUser.id);
-    const myTotalSpent = myExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const { myCurrentExpenses, myTotalSpent, myBalance, adjustedDailyRate } = useMemo(() => {
+    const myCurrentExpenses = allMyExpenses.filter(e => !e.period);
+    const myTotalSpent = myCurrentExpenses.reduce((sum, e) => sum + e.amount, 0);
     const myBalance = currentUser.contribution - myTotalSpent;
     const totalContribution = messState.members.reduce((sum, m) => sum + m.contribution, 0);
-    const totalSpent = messState.expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalSpent = messState.members.reduce((sum, member) => {
+        return sum + allMyExpenses.filter(e => e.memberId === member.id && !e.period).reduce((s, e) => s + e.amount, 0);
+    }, 0);
     const balance = totalContribution - totalSpent;
     const remainingDays = messState.settings.totalDays - (new Date().getDate() - 1);
     const adjustedDailyRate = remainingDays > 0 ? balance / remainingDays : 0;
-    return { myExpenses, myTotalSpent, myBalance, adjustedDailyRate };
-  }, [messState, currentUser]);
+    return { myCurrentExpenses, myTotalSpent, myBalance, adjustedDailyRate };
+  }, [allMyExpenses, currentUser, messState]);
   const handleDownloadReport = () => {
     try {
       const memberWithBalance = {
@@ -47,14 +54,14 @@ const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
         totalExpenses: myTotalSpent,
         balance: myBalance,
       };
-      exportMemberReport(memberWithBalance, myExpenses, (log) => {
+      exportMemberReport(memberWithBalance, allMyExpenses, (log) => {
         createAuditLog({
           ...log,
           userId: currentUser.id,
           userName: currentUser.name,
           deviceInfo: getDeviceInfo(),
         });
-      });
+      }, expenseFilters);
       toast.success("Your report has been downloaded!");
     } catch (error) {
       toast.error("Failed to generate your report.");
@@ -100,17 +107,18 @@ const MemberDashboard = ({ messState, currentUser }: MemberDashboardProps) => {
                 }}
             >
                 <StatCard title="My Contribution" value={currentUser.contribution} icon={DollarSign} formatAsCurrency />
-                <StatCard title="My Total Spent" value={myTotalSpent} icon={ShoppingCart} formatAsCurrency />
-                <StatCard title="My Remaining Balance" value={myBalance} icon={Wallet} formatAsCurrency isPositive={myBalance >= 0} />
-                <StatCard title="Adjusted Daily Rate" value={adjustedDailyRate} icon={TrendingUp} formatAsCurrency isPositive={adjustedDailyRate >= 0} />
+                <StatCard title="My Total Spent (Current)" value={myTotalSpent} icon={ShoppingCart} formatAsCurrency />
+                <StatCard title="My Balance (Current)" value={myBalance} icon={Wallet} formatAsCurrency isPositive={myBalance >= 0} />
+                <StatCard title="Adj. Daily Rate" value={adjustedDailyRate} icon={TrendingUp} formatAsCurrency isPositive={adjustedDailyRate >= 0} />
             </motion.div>
             <div className="mt-10">
                 <Card className="shadow-lg">
                 <CardContent className="p-6">
                     <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Expense History</h2>
                     <ExpensesTable
-                    expenses={myExpenses}
-                    members={messState.members}
+                      expenses={allMyExpenses}
+                      members={messState.members}
+                      onFiltersChange={setExpenseFilters}
                     />
                 </CardContent>
                 </Card>

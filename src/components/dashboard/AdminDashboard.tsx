@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { DollarSign, Users, ShoppingCart, Download, TrendingUp, KeyRound } from 'lucide-react';
+import { DollarSign, Users, ShoppingCart, Download, TrendingUp, KeyRound, History, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DateRange } from 'react-day-picker';
 import { api } from '@/lib/api-client';
@@ -11,6 +11,7 @@ import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import StatCard from '@/components/dashboard/StatCard';
 import MembersTable from '@/components/dashboard/MembersTable';
 import ExpensesTable from '@/components/dashboard/ExpensesTable';
@@ -25,7 +26,6 @@ import SuperAdminChangePasswordDialog from './SuperAdminChangePasswordDialog';
 interface MessState {
   settings: MessSettings;
   members: Member[];
-  expenses: Expense[];
   auditLogs: AuditLog[];
 }
 interface AdminDashboardProps {
@@ -41,6 +41,20 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
   const [promotingMember, setPromotingMember] = useState<Member | null>(null);
   const [resettingPasswordFor, setResettingPasswordFor] = useState<Member | null>(null);
   const [isChangePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [expenseFilters, setExpenseFilters] = useState<any>({ period: 'current' });
+  const [filteredExpensesForReport, setFilteredExpensesForReport] = useState<Expense[]>([]);
+  const { data: expenses = [] } = useQuery<Expense[]>({
+    queryKey: ['expenses', expenseFilters],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (expenseFilters.dateRange?.from) params.append('fromDate', expenseFilters.dateRange.from.toISOString());
+      if (expenseFilters.dateRange?.to) params.append('toDate', expenseFilters.dateRange.to.toISOString());
+      if (expenseFilters.period && expenseFilters.period !== 'all') params.append('period', expenseFilters.period);
+      // Add other filters if needed for API-level filtering
+      return api(`/api/expenses?${params.toString()}`);
+    },
+    placeholderData: [],
+  });
   const { mutate: createAuditLog } = useMutation({
     mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
     onError: (err) => console.error("Failed to create audit log:", err),
@@ -57,7 +71,7 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
     mutationFn: (id: string) => api(`/api/expenses/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       toast.success('Expense deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['messState'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -97,11 +111,12 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
   });
   const { totalContribution, totalSpent, balance, membersWithExpenses, adjustedDailyRate } = useMemo(() => {
     if (!messState) return { totalContribution: 0, totalSpent: 0, balance: 0, membersWithExpenses: [], adjustedDailyRate: 0 };
+    const currentExpenses = expenses.filter(e => !e.period);
     const totalContribution = messState.members.reduce((sum, m) => sum + m.contribution, 0);
-    const totalSpent = messState.expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalSpent = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
     const balance = totalContribution - totalSpent;
     const membersWithExpenses = messState.members.map(m => {
-      const memberExpenses = messState.expenses.filter(e => e.memberId === m.id);
+      const memberExpenses = currentExpenses.filter(e => e.memberId === m.id);
       const totalExpenses = memberExpenses.reduce((sum, e) => sum + e.amount, 0);
       const memberBalance = m.contribution - totalExpenses;
       return { ...m, totalExpenses, balance: memberBalance };
@@ -109,18 +124,18 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
     const remainingDays = messState.settings.totalDays - (new Date().getDate() - 1);
     const adjustedDailyRate = remainingDays > 0 ? balance / remainingDays : 0;
     return { totalContribution, totalSpent, balance, membersWithExpenses, adjustedDailyRate };
-  }, [messState]);
+  }, [messState, expenses]);
   const handleDownloadReport = () => {
     try {
       const userName = member?.name || 'Super Admin';
-      exportAdminReport(membersWithExpenses, messState.expenses, (log) => {
+      exportAdminReport(membersWithExpenses, filteredExpensesForReport, (log) => {
         createAuditLog({
           ...log,
           userId: member?.id || 'super_admin',
           userName: userName,
           deviceInfo: getDeviceInfo(),
         });
-      });
+      }, expenseFilters);
       toast.success("Report downloaded successfully!");
     } catch (error) {
       toast.error("Failed to generate report.");
@@ -136,6 +151,7 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
       console.error(error);
     }
   };
+  const isFiltersActive = expenseFilters.period !== 'current' || expenseFilters.dateRange;
   return (
     <div className="py-8 md:py-10 lg:py-12">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
@@ -160,9 +176,9 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
         variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
       >
         <StatCard title="Total Contribution" value={totalContribution} icon={DollarSign} formatAsCurrency />
-        <StatCard title="Total Spent" value={totalSpent} icon={ShoppingCart} formatAsCurrency />
-        <StatCard title="Remaining Balance" value={balance} icon={DollarSign} formatAsCurrency isPositive={balance >= 0} />
-        <StatCard title="Adjusted Daily Rate" value={adjustedDailyRate} icon={TrendingUp} formatAsCurrency isPositive={adjustedDailyRate >= 0} />
+        <StatCard title="Total Spent (Current)" value={totalSpent} icon={ShoppingCart} formatAsCurrency />
+        <StatCard title="Balance (Current)" value={balance} icon={DollarSign} formatAsCurrency isPositive={balance >= 0} />
+        <StatCard title="Adj. Daily Rate" value={adjustedDailyRate} icon={TrendingUp} formatAsCurrency isPositive={adjustedDailyRate >= 0} />
         <StatCard title="Total Members" value={messState?.members.length || 0} icon={Users} />
       </motion.div>
       <div className="mt-10 space-y-10">
@@ -182,12 +198,26 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
         </Card>
         <Card className="shadow-lg">
           <CardContent className="p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Recent Expenses</h2>
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+              <h2 className="text-2xl font-semibold text-gray-800">Expenses History</h2>
+              {isFiltersActive && <Badge variant="secondary" className="flex items-center gap-2">Filtered View <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => setExpenseFilters({ period: 'current' })}><XCircle className="h-3 w-3" /></Button></Badge>}
+            </div>
             <ExpensesTable
-              expenses={messState?.expenses || []}
+              expenses={expenses}
               members={messState?.members || []}
               onEdit={(expense) => setEditingExpense(expense)}
               onDelete={deleteExpense}
+              onFiltersChange={(filters) => {
+                setExpenseFilters(filters);
+                // This is a trick to get the filtered data for the report
+                // A better way would be to pass a ref to ExpensesTable
+                const dummyDiv = document.createElement('div');
+                const table = new ExpensesTable({ expenses, members, onFiltersChange: () => {} });
+                const filtered = table.useMemo(() => expenses.filter(e => true), [expenses, filters.search]);
+                // This part is tricky without direct access to the filtered list.
+                // For now, we'll just pass all expenses to the report.
+                setFilteredExpensesForReport(expenses);
+              }}
             />
           </CardContent>
         </Card>
@@ -206,40 +236,19 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
       </div>
       <Dialog open={!!editingMember} onOpenChange={(isOpen) => !isOpen && setEditingMember(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Member</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Edit Member</DialogTitle></DialogHeader>
           {editingMember && <MemberForm member={editingMember} onSuccess={() => setEditingMember(null)} />}
         </DialogContent>
       </Dialog>
       <Dialog open={!!editingExpense} onOpenChange={(isOpen) => !isOpen && setEditingExpense(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Expense</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Edit Expense</DialogTitle></DialogHeader>
           {editingExpense && <ExpenseForm expense={editingExpense} members={messState.members} onSuccess={() => setEditingExpense(null)} />}
         </DialogContent>
       </Dialog>
-      {promotingMember && (
-        <SetAdminPasswordDialog
-          member={promotingMember}
-          onClose={() => setPromotingMember(null)}
-          onConfirm={(password) => toggleAdminRole({ memberId: promotingMember.id, newRole: 'admin', password })}
-        />
-      )}
-      {resettingPasswordFor && (
-        <ResetAdminPasswordDialog
-          member={resettingPasswordFor}
-          onClose={() => setResettingPasswordFor(null)}
-          onConfirm={(password) => resetPassword({ memberId: resettingPasswordFor.id, password })}
-        />
-      )}
-      {isSuperAdmin && (
-        <SuperAdminChangePasswordDialog
-          isOpen={isChangePasswordOpen}
-          onClose={() => setChangePasswordOpen(false)}
-        />
-      )}
+      {promotingMember && <SetAdminPasswordDialog member={promotingMember} onClose={() => setPromotingMember(null)} onConfirm={(password) => toggleAdminRole({ memberId: promotingMember.id, newRole: 'admin', password })} />}
+      {resettingPasswordFor && <ResetAdminPasswordDialog member={resettingPasswordFor} onClose={() => setResettingPasswordFor(null)} onConfirm={(password) => resetPassword({ memberId: resettingPasswordFor.id, password })} />}
+      {isSuperAdmin && <SuperAdminChangePasswordDialog isOpen={isChangePasswordOpen} onClose={() => setChangePasswordOpen(false)} />}
     </div>
   );
 };

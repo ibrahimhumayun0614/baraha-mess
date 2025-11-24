@@ -71,7 +71,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const settings = new MessSettingsEntity(c.env);
     await settings.patch({ standardContribution, reducedContribution, totalDays, initialized: true });
     if (resetData) {
-      // 1. Create audit log for mess reset
+      const allExpenses = await listAll(cursor => ExpenseEntity.list(c.env, cursor));
+      const expensesToArchive = allExpenses.filter(e => !e.period);
+      const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      for (const expense of expensesToArchive) {
+        const expenseEntity = new ExpenseEntity(c.env, expense.id);
+        await expenseEntity.patch({ period: currentPeriod });
+      }
       await AuditLogEntity.create(c.env, {
         id: crypto.randomUUID(),
         event: 'mess_reset',
@@ -79,9 +85,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         userName: 'Admin',
         timestamp: new Date().toISOString(),
         deviceInfo: c.req.header('User-Agent') || 'Unknown',
-        metadata: { standardContribution, reducedContribution, totalDays },
+        metadata: { standardContribution, reducedContribution, totalDays, previousPeriod: currentPeriod, archivedCount: expensesToArchive.length },
       });
-      // 2. Recalculate contributions for all members
       const allMembers = await listAll(cursor => MemberEntity.list(c.env, cursor));
       for (const member of allMembers) {
         const memberEntity = new MemberEntity(c.env, member.id);
@@ -99,7 +104,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const members = await listAll(cursor => MemberEntity.list(c.env, cursor));
     const expenses = await listAll(cursor => ExpenseEntity.list(c.env, cursor));
     const auditLogs = await listAll(cursor => AuditLogEntity.list(c.env, cursor));
-    // Strip passwords before sending to client
     const membersWithoutPasswords = members.map(m => {
       const { password, ...rest } = m;
       return rest;
@@ -109,7 +113,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // MEMBERS
   app.get('/api/members', async (c) => {
     const members = await listAll(cursor => MemberEntity.list(c.env, cursor));
-    // Strip passwords before sending to client
     const membersWithoutPasswords = members.map(m => {
       const { password, ...rest } = m;
       return rest;
@@ -151,11 +154,9 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (name) updatePayload.name = name;
     if (type) updatePayload.type = type;
     if (typeof days === 'number') updatePayload.days = days;
-    // Manual contribution override takes precedence
     if (typeof contribution === 'number') {
       updatePayload.contribution = contribution;
     } else if (type || typeof days === 'number') {
-      // If no manual override, recalculate if type or days change
       const settings = await new MessSettingsEntity(c.env).getState();
       const newType = type || oldMember.type;
       const newDays = typeof days === 'number' ? days : oldMember.days;
@@ -193,7 +194,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       if (!password) return bad(c, 'Password is required to promote to admin');
       updatePayload.password = await hashPassword(password);
     } else {
-      // When demoting, remove the password
       updatePayload.password = undefined;
     }
     await memberEntity.patch(updatePayload);
@@ -238,15 +238,29 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // EXPENSES
   app.get('/api/expenses', async (c) => {
-    const expenses = await listAll(cursor => ExpenseEntity.list(c.env, cursor));
+    const { fromDate, toDate, period, memberId, addedById, minAmount, maxAmount } = c.req.query();
+    let expenses = await listAll(cursor => ExpenseEntity.list(c.env, cursor));
+    if (fromDate) expenses = expenses.filter(e => new Date(e.date) >= new Date(fromDate));
+    if (toDate) expenses = expenses.filter(e => new Date(e.date) <= new Date(toDate));
+    if (period) {
+      if (period === 'current') {
+        expenses = expenses.filter(e => !e.period);
+      } else if (period !== 'all') {
+        expenses = expenses.filter(e => e.period === period);
+      }
+    }
+    if (memberId) expenses = expenses.filter(e => e.memberId === memberId);
+    if (addedById) expenses = expenses.filter(e => e.addedById === addedById);
+    if (minAmount) expenses = expenses.filter(e => e.amount >= parseFloat(minAmount));
+    if (maxAmount) expenses = expenses.filter(e => e.amount <= parseFloat(maxAmount));
     return ok(c, expenses);
   });
   app.post('/api/expenses', async (c) => {
-    const { memberId, amount, date, note, deviceInfo, addedById, addedByName } = (await c.req.json()) as Partial<Expense>;
+    const { memberId, amount, date, note, deviceInfo, addedById, addedByName, period } = (await c.req.json()) as Partial<Expense>;
     if (!isStr(memberId) || typeof amount !== 'number' || !isStr(date) || !isStr(deviceInfo) || !isStr(addedById) || !isStr(addedByName)) {
       return bad(c, 'All fields are required');
     }
-    const expense: Expense = { id: crypto.randomUUID(), memberId, amount, date, note, deviceInfo, addedById, addedByName };
+    const expense: Expense = { id: crypto.randomUUID(), memberId, amount, date, note, deviceInfo, addedById, addedByName, period };
     await ExpenseEntity.create(c.env, expense);
     const member = await new MemberEntity(c.env, memberId).getState();
     await AuditLogEntity.create(c.env, {
@@ -267,7 +281,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   app.put('/api/expenses/:id', async (c) => {
     const id = c.req.param('id');
-    const { memberId, amount, date, note } = (await c.req.json()) as Partial<Expense>;
+    const { memberId, amount, date, note, period } = (await c.req.json()) as Partial<Expense>;
     const expenseEntity = new ExpenseEntity(c.env, id);
     if (!(await expenseEntity.exists())) return notFound(c, 'Expense not found');
     const updatePayload: Partial<Expense> = {};
@@ -275,6 +289,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (typeof amount === 'number') updatePayload.amount = amount;
     if (isStr(date)) updatePayload.date = date;
     if (note !== undefined) updatePayload.note = note;
+    if (period !== undefined) updatePayload.period = period;
     await expenseEntity.patch(updatePayload);
     const updatedExpense = await expenseEntity.getState();
     const member = await new MemberEntity(c.env, updatedExpense.memberId).getState();

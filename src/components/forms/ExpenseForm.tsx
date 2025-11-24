@@ -18,6 +18,7 @@ const ExpenseFormSchema = z.object({
   amount: z.coerce.number().positive('Amount must be positive'),
   date: z.string().min(1, 'Date is required'),
   note: z.string().optional(),
+  period: z.string().optional(),
 });
 type FormValues = z.infer<typeof ExpenseFormSchema>;
 interface ExpenseFormProps {
@@ -36,6 +37,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
       amount: expense?.amount || undefined,
       date: expense ? format(new Date(expense.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       note: expense?.note || '',
+      period: expense?.period || '',
     },
   });
   const mutation = useMutation({
@@ -56,6 +58,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
     onSuccess: () => {
       toast.success(`Expense ${isEditMode ? 'updated' : 'logged'} successfully!`);
       queryClient.invalidateQueries({ queryKey: ['messState'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
       onSuccess();
     },
     onError: (error) => {
@@ -124,6 +127,19 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
               <FormLabel>Note (Optional)</FormLabel>
               <FormControl>
                 <Textarea placeholder="e.g., Groceries from Lulu" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="period"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Period (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., 2024-10" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

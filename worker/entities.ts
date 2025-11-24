@@ -22,7 +22,7 @@ export class MemberEntity extends IndexedEntity<Member> {
 export class ExpenseEntity extends IndexedEntity<Expense> {
   static readonly entityName = "expense";
   static readonly indexName = "expenses";
-  static readonly initialState: Expense = { id: "", memberId: "", amount: 0, date: "", deviceInfo: "", addedById: "", addedByName: "" };
+  static readonly initialState: Expense = { id: "", memberId: "", amount: 0, date: "", deviceInfo: "", addedById: "", addedByName: "", period: "" };
 }
 export class AuditLogEntity extends IndexedEntity<AuditLog> {
   static readonly entityName = "audit-log";
