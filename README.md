@@ -1,5 +1,5 @@
 # Baraha Bad Boys Mess: Mess Management System
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ibrahimhumayun0614/baraha-mess)
 Baraha Bad Boys Mess is a sophisticated, minimalist mess management application designed for seamless tracking of member contributions and expenses. It features distinct dashboards for admins and members. Admins can initialize the monthly cycle, manage members, set contribution amounts, and oversee all financial activity. Members can log their expenses, view their personal balance, and track their spending history. The system provides real-time updates, dynamic calculation of balances, and generates detailed daily and monthly reports in Excel format. An integrated audit log captures key actions, including device information, ensuring transparency and accountability.
 ## Key Features
 -   **Dual Dashboards**: Separate, tailored views for Admins and Members.
@@ -63,4 +63,4 @@ This application is designed to be deployed to Cloudflare Pages with a Functions
     bun deploy
     ```
 Alternatively, you can deploy directly from your GitHub repository using the button below.
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ibrahimhumayun0614/baraha-mess)
