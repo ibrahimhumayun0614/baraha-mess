@@ -61,7 +61,6 @@ export function LoginPage() {
     if (member.role === 'admin') {
       setLoginAttempt({ type: 'admin', member });
     } else {
-      // Standard members log in without password
       login('member', member);
       toast.success(`Logged in as ${member.name}`);
       createAuditLog({
@@ -155,28 +154,32 @@ export function LoginPage() {
     </div>
   );
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
       <Toaster richColors />
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center mb-8">
-        <div className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-4 mb-4 shadow-lg">
-          <UtensilsCrossed className="w-10 h-10" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="py-8 md:py-10 lg:py-12 flex flex-col items-center justify-center">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center mb-8">
+            <div className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-4 mb-4 shadow-lg">
+              <UtensilsCrossed className="w-10 h-10" />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800">Baraha Bad Boys Mess</h1>
+            <p className="text-muted-foreground mt-2">Effortless Mess Management</p>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="w-full sm:max-w-md">
+            <Card className="shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-2xl text-center">Select Your Role</CardTitle>
+                <CardDescription className="text-center">Choose your access level to continue.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loginAttempt ? renderPasswordForm() : renderRoleSelection()}
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-800">Baraha Mess</h1>
-        <p className="text-muted-foreground mt-2">Effortless Mess Management</p>
-      </motion.div>
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="w-full sm:max-w-md">
-        <Card className="shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Select Your Role</CardTitle>
-            <CardDescription className="text-center">Choose your access level to continue.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loginAttempt ? renderPasswordForm() : renderRoleSelection()}
-          </CardContent>
-        </Card>
-      </motion.div>
+      </div>
       <footer className="absolute bottom-4 text-center text-muted-foreground/80 text-sm">
-        <p>Built with ❤️ by Ibrahim</p>
+        <p>Powered by Ibrahim</p>
       </footer>
     </div>
   );

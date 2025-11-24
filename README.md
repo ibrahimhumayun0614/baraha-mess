@@ -1,12 +1,12 @@
-# Baraha Mess: Mess Management System
+# Baraha Bad Boys Mess: Mess Management System
 [cloudflarebutton]
-Baraha Mess is a sophisticated, minimalist mess management application designed for seamless tracking of member contributions and expenses. It features distinct dashboards for admins and members. Admins can initialize the monthly cycle, manage members, set contribution amounts, and oversee all financial activity. Members can log their expenses, view their personal balance, and track their spending history. The system provides real-time updates, dynamic calculation of balances, and generates detailed daily and monthly reports in Excel format. An integrated audit log captures key actions, including device information, ensuring transparency and accountability.
+Baraha Bad Boys Mess is a sophisticated, minimalist mess management application designed for seamless tracking of member contributions and expenses. It features distinct dashboards for admins and members. Admins can initialize the monthly cycle, manage members, set contribution amounts, and oversee all financial activity. Members can log their expenses, view their personal balance, and track their spending history. The system provides real-time updates, dynamic calculation of balances, and generates detailed daily and monthly reports in Excel format. An integrated audit log captures key actions, including device information, ensuring transparency and accountability.
 ## Key Features
 -   **Dual Dashboards**: Separate, tailored views for Admins and Members.
 -   **Admin Control Panel**: Manage members, set monthly contributions, and view all financial activity.
 -   **Member Expense Logging**: Simple form for members to log expenses with automatic device info capture.
 -   **Real-Time Balance Updates**: Balances are dynamically recalculated as expenses are logged.
--   **Comprehensive Reporting**: Generate and download daily and monthly reports in Excel format.
+-   **Comprehensive Reporting**: Generate and download daily and monthly reports (e.g., `Baraha_Bad_Boys_Mess_Admin_Report_...xlsx`) in Excel format.
 -   **Audit Trail**: Key actions are logged with user details, timestamps, and device info for transparency.
 -   **Minimalist UI/UX**: A clean, modern, and responsive interface built with shadcn/ui and Tailwind CSS.
 ## Technology Stack

@@ -137,7 +137,7 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
     }
   };
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+    <div className="py-8 md:py-10">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <DashboardActions settings={messState?.settings} members={messState?.members || []} />
         <div className="flex flex-col items-stretch sm:items-end space-y-2 w-full md:w-auto">
@@ -240,7 +240,7 @@ const AdminDashboard = ({ messState, adminUser }: AdminDashboardProps) => {
           onClose={() => setChangePasswordOpen(false)}
         />
       )}
-    </main>
+    </div>
   );
 };
 export default AdminDashboard;

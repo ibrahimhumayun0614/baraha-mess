@@ -34,7 +34,7 @@ export const exportAdminReport = (
   const expensesWs = XLSX.utils.json_to_sheet(expensesData);
   XLSX.utils.book_append_sheet(wb, expensesWs, 'All Expenses');
   // Download
-  const fileName = `Baraha_Mess_Admin_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  const fileName = `Baraha_Bad_Boys_Mess_Admin_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
   XLSX.writeFile(wb, fileName);
   createAuditLog({ event: 'report_download' });
 };
@@ -63,7 +63,7 @@ export const exportMemberReport = (
   const expensesWs = XLSX.utils.json_to_sheet(expensesData);
   XLSX.utils.book_append_sheet(wb, expensesWs, 'My Expenses');
   // Download
-  const fileName = `Baraha_Mess_${member.name}_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  const fileName = `Baraha_Bad_Boys_Mess_${member.name}_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
   XLSX.writeFile(wb, fileName);
   createAuditLog({ event: 'report_download' });
 };
@@ -80,6 +80,6 @@ export const exportAuditLogs = (logs: AuditLog[]) => {
   }));
   const logsWs = XLSX.utils.json_to_sheet(logsData);
   XLSX.utils.book_append_sheet(wb, logsWs, 'Audit Logs');
-  const fileName = `Baraha_Mess_Audit_Logs_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  const fileName = `Baraha_Bad_Boys_Mess_Audit_Logs_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
   XLSX.writeFile(wb, fileName);
 };
