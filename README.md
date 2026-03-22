@@ -64,6 +64,3 @@ This application is designed to be deployed to Cloudflare Pages with a Functions
     ```
 Alternatively, you can deploy directly from your GitHub repository using the button below.
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ibrahimhumayun0614/baraha-mess)
-
-
-mohamed Ibrahimm
