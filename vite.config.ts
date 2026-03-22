@@ -92,7 +92,7 @@ export default ({ mode }: { mode: string }) => {
     plugins: [react(), cloudflare(), watchDependenciesPlugin()],
     build: {
       minify: true,
-      sourcemap: "inline", // Use inline source maps for better error reporting
+      sourcemap: true, // Use external source maps to fix Cloudflare deploy parsing
       rollupOptions: {
         output: {
           sourcemapExcludeSources: false, // Include original source in source maps
