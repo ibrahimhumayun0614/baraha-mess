@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
-import { Calendar as CalendarIcon, Download, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Download, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import {
   Table,
@@ -33,7 +33,11 @@ interface AuditLogsTableProps {
   onClearLogs?: (dateRange: DateRange) => void;
   onDownloadLogs?: (logs: AuditLog[]) => void;
 }
+
+const PAGE_SIZE = 50;
+
 const AuditLogsTable = ({ auditLogs, onClearLogs, onDownloadLogs }: AuditLogsTableProps) => {
+  const [page, setPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [eventFilter, setEventFilter] = useState('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -67,6 +71,17 @@ const AuditLogsTable = ({ auditLogs, onClearLogs, onDownloadLogs }: AuditLogsTab
       })
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [auditLogs, searchTerm, eventFilter, dateRange]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
+  const paginatedLogs = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return filteredLogs.slice(start, start + PAGE_SIZE);
+  }, [filteredLogs, page]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, eventFilter, dateRange]);
+
   const handleClearLogs = () => {
     if (dateRange?.from && dateRange?.to && onClearLogs) {
       onClearLogs(dateRange);
@@ -145,8 +160,8 @@ const AuditLogsTable = ({ auditLogs, onClearLogs, onDownloadLogs }: AuditLogsTab
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredLogs.length > 0 ? (
-              filteredLogs.map((log) => (
+            {paginatedLogs.length > 0 ? (
+              paginatedLogs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell>
                     <Badge variant="secondary">{formatEvent(log.event)}</Badge>
@@ -166,6 +181,21 @@ const AuditLogsTable = ({ auditLogs, onClearLogs, onDownloadLogs }: AuditLogsTab
           </TableBody>
         </Table>
       </div>
+      {filteredLogs.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-sm text-muted-foreground">
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
       <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

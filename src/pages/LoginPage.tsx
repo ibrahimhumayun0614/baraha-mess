@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { UtensilsCrossed, User, Shield, KeyRound, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +9,8 @@ import { useAuthStore } from '@/hooks/use-auth-store';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
 import type { Member, AuditLog } from '@shared/types';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMembers } from '@/hooks/use-mess-queries';
+import { useMutation } from '@tanstack/react-query';
 import { Toaster, toast } from 'sonner';
 type LoginAttempt = {
   type: 'super_admin' | 'admin' | 'member';
@@ -22,10 +22,7 @@ export function LoginPage() {
   const { login, role: currentRole, member: currentMember } = useAuthStore();
   const [loginAttempt, setLoginAttempt] = useState<LoginAttempt | null>(null);
   const [password, setPassword] = useState('');
-  const { data: members, isLoading } = useQuery<Member[]>({
-    queryKey: ['members'],
-    queryFn: () => api('/api/members'),
-  });
+  const { data: members, isLoading } = useMembers();
   const { mutate: createAuditLog } = useMutation({
     mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
     onError: (err) => console.error("Failed to create audit log:", err),
@@ -158,14 +155,14 @@ export function LoginPage() {
       <Toaster richColors />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="py-8 md:py-10 lg:py-12 flex flex-col items-center justify-center">
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center mb-8">
+          <div className="text-center mb-8 animate-fade-in">
             <div className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-4 mb-4 shadow-lg">
               <UtensilsCrossed className="w-10 h-10" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-800">Baraha Bad Boys Mess</h1>
             <p className="text-muted-foreground mt-2">Effortless Mess Management</p>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="w-full sm:max-w-md">
+          </div>
+          <div className="w-full sm:max-w-md animate-fade-in-up">
             <Card className="shadow-xl">
               <CardHeader>
                 <CardTitle className="text-2xl text-center">Select Your Role</CardTitle>
@@ -175,7 +172,7 @@ export function LoginPage() {
                 {loginAttempt ? renderPasswordForm() : renderRoleSelection()}
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </div>
       </div>
       <footer className="absolute bottom-4 text-center text-muted-foreground/80 text-sm">

@@ -8,6 +8,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api-client';
+import { QUERY_KEYS } from '@/hooks/use-mess-queries';
 import type { Member } from '@shared/types';
 const MemberFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -40,7 +41,8 @@ const MemberForm = ({ member, onSuccess }: MemberFormProps) => {
     },
     onSuccess: () => {
       toast.success(`Member ${isEditMode ? 'updated' : 'added'} successfully!`);
-      queryClient.invalidateQueries({ queryKey: ['messState'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.members });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.messStats });
       onSuccess();
     },
     onError: (error) => {

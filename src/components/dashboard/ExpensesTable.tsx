@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
-import { MoreHorizontal, Trash2, Pencil, Search, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreHorizontal, Trash2, Pencil, Search, Calendar as CalendarIcon } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import { useDebounce } from 'react-use';
 import {
@@ -23,7 +23,11 @@ interface ExpensesTableProps {
   onDelete?: (id: string) => void;
   onFiltersChange?: (filters: any) => void;
 }
+
+const PAGE_SIZE = 50;
+
 const ExpensesTable = ({ expenses, members, onEdit, onDelete, onFiltersChange }: ExpensesTableProps) => {
+  const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filters, setFilters] = useState({
@@ -73,11 +77,27 @@ const ExpensesTable = ({ expenses, members, onEdit, onDelete, onFiltersChange }:
       return true;
     });
   }, [expenses, debouncedSearch, filters, memberMap]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredExpenses.length / PAGE_SIZE));
+  const paginatedExpenses = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return filteredExpenses.slice(start, start + PAGE_SIZE);
+  }, [filteredExpenses, page]);
+
   useEffect(() => {
-    if (onFiltersChange) {
-      onFiltersChange({ ...filters, search: debouncedSearch });
-    }
-  }, [debouncedSearch, filters, onFiltersChange]);
+    setPage(0);
+  }, [debouncedSearch, filters]);
+
+  const stableOnFiltersChange = useCallback(
+    (next: typeof filters & { search: string }) => {
+      onFiltersChange?.(next);
+    },
+    [onFiltersChange]
+  );
+
+  useEffect(() => {
+    stableOnFiltersChange({ ...filters, search: debouncedSearch });
+  }, [debouncedSearch, filters, stableOnFiltersChange]);
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(amount);
   const hasActions = !!onEdit || !!onDelete;
   return (
@@ -139,8 +159,8 @@ const ExpensesTable = ({ expenses, members, onEdit, onDelete, onFiltersChange }:
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredExpenses.length > 0 ? (
-              filteredExpenses.map((expense) => (
+            {paginatedExpenses.length > 0 ? (
+              paginatedExpenses.map((expense) => (
                 <TableRow key={expense.id}>
                   <TableCell className="font-medium whitespace-nowrap">{memberMap.get(expense.memberId) || 'Unknown'}</TableCell>
                   <TableCell className="font-medium whitespace-nowrap">{expense.addedByName}</TableCell>
@@ -167,6 +187,21 @@ const ExpensesTable = ({ expenses, members, onEdit, onDelete, onFiltersChange }:
           </TableBody>
         </Table>
       </div>
+      {filteredExpenses.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-sm text-muted-foreground">
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filteredExpenses.length)} of {filteredExpenses.length}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -98,17 +98,40 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }
     return ok(c, await settings.getState());
   });
-  app.get('/api/mess/state', async (c) => {
+  app.get('/api/mess/settings', async (c) => {
     const settings = new MessSettingsEntity(c.env);
-    const state = await settings.getState();
-    const members = await listAll(cursor => MemberEntity.list(c.env, cursor));
-    const expenses = await listAll(cursor => ExpenseEntity.list(c.env, cursor));
+    return ok(c, await settings.getState());
+  });
+  app.get('/api/mess/stats', async (c) => {
+    const [settings, members, expenses] = await Promise.all([
+      new MessSettingsEntity(c.env).getState(),
+      listAll(cursor => MemberEntity.list(c.env, cursor)),
+      listAll(cursor => ExpenseEntity.list(c.env, cursor)),
+    ]);
+    const currentExpenses = expenses.filter(e => !e.period);
+    const totalContribution = members.reduce((sum, m) => sum + m.contribution, 0);
+    const totalSpent = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const balance = totalContribution - totalSpent;
+    const remainingDays = settings.totalDays - (new Date().getDate() - 1);
+    const adjustedDailyRate = remainingDays > 0 ? balance / remainingDays : 0;
+    return ok(c, { totalContribution, totalSpent, balance, adjustedDailyRate });
+  });
+  app.get('/api/audit-logs', async (c) => {
     const auditLogs = await listAll(cursor => AuditLogEntity.list(c.env, cursor));
+    return ok(c, auditLogs);
+  });
+  app.get('/api/mess/state', async (c) => {
+    const [state, members, expenses, auditLogs] = await Promise.all([
+      new MessSettingsEntity(c.env).getState(),
+      listAll(cursor => MemberEntity.list(c.env, cursor)),
+      listAll(cursor => ExpenseEntity.list(c.env, cursor)),
+      listAll(cursor => AuditLogEntity.list(c.env, cursor)),
+    ]);
     const membersWithoutPasswords = members.map(m => {
       const { password, ...rest } = m;
       return rest;
     });
-    return ok(c, { settings: state, members: membersWithoutPasswords, expenses: expenses, auditLogs: auditLogs });
+    return ok(c, { settings: state, members: membersWithoutPasswords, expenses, auditLogs });
   });
   // MEMBERS
   app.get('/api/members', async (c) => {

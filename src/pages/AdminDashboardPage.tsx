@@ -1,31 +1,28 @@
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
-import { api } from '@/lib/api-client';
 import { useAuthStore } from '@/hooks/use-auth-store';
+import { useMembers, useMessSettings } from '@/hooks/use-mess-queries';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import AdminDashboard from '@/components/dashboard/AdminDashboard';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
-interface MessState {
-  settings: MessSettings;
-  members: Member[];
-  expenses: Expense[];
-  auditLogs: AuditLog[];
-}
+
 export function AdminDashboardPage() {
   const navigate = useNavigate();
   const { member, logout } = useAuthStore();
-  const { data: messState, isLoading, error } = useQuery<MessState>({
-    queryKey: ['messState'],
-    queryFn: () => api('/api/mess/state'),
-  });
+  const { data: settings, isLoading: settingsLoading, error: settingsError } = useMessSettings();
+  const { data: members = [], isLoading: membersLoading, error: membersError } = useMembers();
+
+  const isLoading = settingsLoading || membersLoading;
+  const error = settingsError || membersError;
+
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
     navigate('/');
   };
+
   const adminUser = member || { name: 'Super Admin' };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -38,7 +35,6 @@ export function AdminDashboardPage() {
               <Skeleton className="h-28 w-full" />
               <Skeleton className="h-28 w-full" />
             </div>
-            <Skeleton className="h-96 w-full" />
             <Skeleton className="h-96 w-full" />
           </div>
         </div>
@@ -53,15 +49,16 @@ export function AdminDashboardPage() {
         </div>
       );
     }
-    if (messState) {
+    if (settings) {
       return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <AdminDashboard messState={messState} adminUser={member} />
+          <AdminDashboard settings={settings} members={members} adminUser={member} />
         </div>
       );
     }
     return null;
   };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Toaster richColors />

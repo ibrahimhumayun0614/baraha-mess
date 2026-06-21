@@ -1,35 +1,31 @@
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
-import { api } from '@/lib/api-client';
 import { useAuthStore } from '@/hooks/use-auth-store';
+import { useMembers, useMessSettings } from '@/hooks/use-mess-queries';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import MemberDashboard from '@/components/dashboard/MemberDashboard';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
-interface MessState {
-  settings: MessSettings;
-  members: Member[];
-  expenses: Expense[];
-  auditLogs: AuditLog[];
-}
+
 export function MemberDashboardPage() {
   const navigate = useNavigate();
   const { member: currentUser, logout } = useAuthStore();
-  const { data: messState, isLoading, error } = useQuery<MessState>({
-    queryKey: ['messState'],
-    queryFn: () => api('/api/mess/state'),
-  });
+  const { isLoading: settingsLoading, error: settingsError } = useMessSettings();
+  const { data: members = [], isLoading: membersLoading, error: membersError } = useMembers();
+
+  const isLoading = settingsLoading || membersLoading;
+  const error = settingsError || membersError;
+
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
     navigate('/');
   };
+
   if (!currentUser) {
-    // This should be caught by ProtectedRoute, but as a fallback
     navigate('/');
     return null;
   }
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -55,13 +51,9 @@ export function MemberDashboardPage() {
         </div>
       );
     }
-    if (messState) {
-      return (
-        <MemberDashboard messState={messState} currentUser={currentUser} />
-      );
-    }
-    return null;
+    return <MemberDashboard members={members} currentUser={currentUser} />;
   };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Toaster richColors />
