@@ -88,7 +88,7 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                   Text('Log a New Expense', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: selectedMemberId,
+                    initialValue: selectedMemberId,
                     decoration: const InputDecoration(labelText: 'Paid By'),
                     items: _members.map((m) => DropdownMenuItem(value: m.id, child: Text(m.name))).toList(),
                     onChanged: (v) => setModalState(() => selectedMemberId = v!),

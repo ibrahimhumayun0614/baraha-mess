@@ -84,8 +84,8 @@ class ApiClient {
     });
   }
 
-  Future<void> createAuditLog(Map<String, dynamic> log) {
-    return post('/api/audit-logs', (_) => null, body: log);
+  Future<void> createAuditLog(Map<String, dynamic> log) async {
+    await post<Object>('/api/audit-logs', (d) => d, body: log);
   }
 
   Future<Expense> createExpense(Map<String, dynamic> payload) {
