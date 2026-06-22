@@ -35,8 +35,8 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Fill missing platform files
-        run: flutter create . --platforms=android --org com.baraha
+      - name: Add missing Android assets
+        run: flutter create . --platforms=android --org com.baraha --project-name baraha_mess
 
       - name: Install dependencies
         run: flutter pub get
