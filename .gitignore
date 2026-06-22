@@ -1,3 +1,11 @@
 
 # Bootstrap marker
 .bootstrap-complete
+
+# Flutter mobile (build artifacts only; source is tracked)
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/android/local.properties
+mobile/android/.gradle/
