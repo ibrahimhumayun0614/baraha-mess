@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../services/api_client.dart';
@@ -108,7 +107,7 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                   const SizedBox(height: 16),
                   AppButton(
                     label: 'Save Expense',
-                    icon: LucideIcons.plusCircle,
+                    icon: Icons.add_circle_outline,
                     onPressed: () async {
                       final amount = double.tryParse(amountController.text.trim());
                       if (amount == null || amount <= 0) return;
@@ -176,7 +175,7 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                               const Text('My Dashboard', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                               const Text('Here\'s your personal mess summary.', style: TextStyle(color: AppColors.mutedForeground)),
                               const SizedBox(height: 16),
-                              AppButton(label: 'Add Expense', icon: LucideIcons.plusCircle, onPressed: _showAddExpense),
+                              AppButton(label: 'Add Expense', icon: Icons.add_circle_outline, onPressed: _showAddExpense),
                             ],
                           ),
                         ),
@@ -193,13 +192,13 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                         childAspectRatio: 1.3,
                       ),
                       delegate: SliverChildListDelegate([
-                        StatCard(title: 'My Contribution', value: user.contribution, icon: LucideIcons.dollarSign, formatAsCurrency: true),
-                        StatCard(title: 'My Total Spent', value: myTotalSpent, icon: LucideIcons.shoppingCart, formatAsCurrency: true),
-                        StatCard(title: 'My Balance', value: myBalance, icon: LucideIcons.wallet, formatAsCurrency: true, isPositive: myBalance >= 0),
+                        StatCard(title: 'My Contribution', value: user.contribution, icon: Icons.attach_money, formatAsCurrency: true),
+                        StatCard(title: 'My Total Spent', value: myTotalSpent, icon: Icons.shopping_cart, formatAsCurrency: true),
+                        StatCard(title: 'My Balance', value: myBalance, icon: Icons.account_balance_wallet, formatAsCurrency: true, isPositive: myBalance >= 0),
                         StatCard(
                           title: 'Adj. Daily Rate',
                           value: _stats?.adjustedDailyRate ?? 0,
-                          icon: LucideIcons.trendingUp,
+                          icon: Icons.trending_up,
                           formatAsCurrency: true,
                           isPositive: (_stats?.adjustedDailyRate ?? 0) >= 0,
                         ),

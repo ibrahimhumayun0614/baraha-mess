@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../services/api_client.dart';
@@ -93,10 +92,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         childAspectRatio: 1.3,
                       ),
                       delegate: SliverChildListDelegate([
-                        StatCard(title: 'Total Contribution', value: _stats?.totalContribution ?? 0, icon: LucideIcons.dollarSign, formatAsCurrency: true),
-                        StatCard(title: 'Total Spent', value: _stats?.totalSpent ?? 0, icon: LucideIcons.shoppingCart, formatAsCurrency: true),
-                        StatCard(title: 'Balance', value: _stats?.balance ?? 0, icon: LucideIcons.wallet, formatAsCurrency: true, isPositive: (_stats?.balance ?? 0) >= 0),
-                        StatCard(title: 'Adj. Daily Rate', value: _stats?.adjustedDailyRate ?? 0, icon: LucideIcons.trendingUp, formatAsCurrency: true),
+                        StatCard(title: 'Total Contribution', value: _stats?.totalContribution ?? 0, icon: Icons.attach_money, formatAsCurrency: true),
+                        StatCard(title: 'Total Spent', value: _stats?.totalSpent ?? 0, icon: Icons.shopping_cart, formatAsCurrency: true),
+                        StatCard(title: 'Balance', value: _stats?.balance ?? 0, icon: Icons.account_balance_wallet, formatAsCurrency: true, isPositive: (_stats?.balance ?? 0) >= 0),
+                        StatCard(title: 'Adj. Daily Rate', value: _stats?.adjustedDailyRate ?? 0, icon: Icons.trending_up, formatAsCurrency: true),
                       ]),
                     ),
                   ),
@@ -111,7 +110,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(LucideIcons.users, size: 20),
+                                  const Icon(Icons.people, size: 20),
                                   const SizedBox(width: 8),
                                   Text('Members (${_members.length})', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                                 ],
@@ -120,7 +119,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               ..._members.map(
                                 (m) => ListTile(
                                   contentPadding: EdgeInsets.zero,
-                                  leading: Icon(m.isAdmin ? LucideIcons.shield : LucideIcons.user, color: m.isAdmin ? AppColors.green : null),
+                                  leading: Icon(m.isAdmin ? Icons.shield : Icons.person, color: m.isAdmin ? AppColors.green : null),
                                   title: Text(m.name),
                                   trailing: Text(currency.format(m.contribution)),
                                 ),

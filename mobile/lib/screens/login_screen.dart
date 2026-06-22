@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../config/app_config.dart';
 import '../models/models.dart';
@@ -149,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [BoxShadow(color: AppColors.primaryBlue.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 8))],
                     ),
-                    child: const Icon(LucideIcons.utensilsCrossed, color: Colors.white, size: 40),
+                    child: const Icon(Icons.restaurant, color: Colors.white, size: 40),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -210,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 _isSuperAdmin = false;
                 _passwordController.clear();
               }),
-              icon: const Icon(LucideIcons.arrowLeft),
+              icon: const Icon(Icons.arrow_back),
             ),
             Expanded(
               child: Text(
@@ -225,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
           controller: _passwordController,
           obscureText: true,
           decoration: const InputDecoration(
-            prefixIcon: Icon(LucideIcons.keyRound),
+            prefixIcon: Icon(Icons.key),
             hintText: 'Password',
           ),
           onSubmitted: (_) => _submitPassword(),
@@ -247,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         AppButton(
           label: 'Super Admin Login',
-          icon: LucideIcons.shield,
+          icon: Icons.shield,
           variant: AppButtonVariant.superAdmin,
           height: 56,
           onPressed: () => setState(() {
@@ -279,7 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     value: m.id,
                     child: Row(
                       children: [
-                        Icon(m.isAdmin ? LucideIcons.shield : LucideIcons.user, size: 18, color: m.isAdmin ? AppColors.green : null),
+                        Icon(m.isAdmin ? Icons.shield : Icons.person, size: 18, color: m.isAdmin ? AppColors.green : null),
                         const SizedBox(width: 8),
                         Text(m.name),
                       ],

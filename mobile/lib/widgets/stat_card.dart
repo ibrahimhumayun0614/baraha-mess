@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_colors.dart';
 
 class StatCard extends StatelessWidget {
@@ -84,7 +83,7 @@ class DashboardHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(LucideIcons.utensilsCrossed, color: AppColors.primaryBlue, size: 32),
+              const Icon(Icons.restaurant, color: AppColors.primaryBlue, size: 32),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
