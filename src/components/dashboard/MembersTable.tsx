@@ -55,7 +55,7 @@ const MembersTable = ({ members, onEdit, onDelete, isSuperAdmin, onToggleAdmin, 
             <TableHead>Days</TableHead>
             <TableHead className="text-right">Contribution</TableHead>
             <TableHead className="text-right">Expenses</TableHead>
-            <TableHead className="text-right">Balance</TableHead>
+            <TableHead className="text-right">Personal Balance</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>

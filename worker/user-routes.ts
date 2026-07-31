@@ -112,7 +112,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const totalContribution = members.reduce((sum, m) => sum + m.contribution, 0);
     const totalSpent = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
     const balance = totalContribution - totalSpent;
-    const remainingDays = settings.totalDays - (new Date().getDate() - 1);
+    const remainingDays = Math.max(0, settings.totalDays - (new Date().getDate() - 1));
     const adjustedDailyRate = remainingDays > 0 ? balance / remainingDays : 0;
     return ok(c, { totalContribution, totalSpent, balance, adjustedDailyRate });
   });

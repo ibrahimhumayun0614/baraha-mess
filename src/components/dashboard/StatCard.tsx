@@ -8,11 +8,13 @@ interface StatCardProps {
   icon: LucideIcon;
   formatAsCurrency?: boolean;
   isPositive?: boolean;
+  description?: string;
+  displayValue?: string;
 }
-const StatCard = ({ title, value, icon: Icon, formatAsCurrency = false, isPositive }: StatCardProps) => {
-  const formattedValue = formatAsCurrency
+const StatCard = ({ title, value, icon: Icon, formatAsCurrency = false, isPositive, description, displayValue }: StatCardProps) => {
+  const formattedValue = displayValue ?? (formatAsCurrency
     ? new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(value)
-    : value.toString();
+    : value.toString());
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
@@ -35,6 +37,9 @@ const StatCard = ({ title, value, icon: Icon, formatAsCurrency = false, isPositi
             >
               {formattedValue}
             </div>
+            {description && (
+              <p className="text-xs text-muted-foreground mt-2 leading-snug">{description}</p>
+            )}
           </CardContent>
         </div>
       </Card>

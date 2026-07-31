@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { DollarSign, Users, ShoppingCart, Download, TrendingUp, KeyRound, XCircle } from 'lucide-react';
+import { DollarSign, Users, ShoppingCart, Download, TrendingUp, KeyRound, XCircle, Info } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay } from 'date-fns';
 import { api } from '@/lib/api-client';
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import StatCard from '@/components/dashboard/StatCard';
 import MembersTable from '@/components/dashboard/MembersTable';
 import ExpensesTable from '@/components/dashboard/ExpensesTable';
@@ -21,6 +22,7 @@ import DashboardActions from '@/components/dashboard/DashboardActions';
 import MemberForm from '@/components/forms/MemberForm';
 import ExpenseForm from '@/components/forms/ExpenseForm';
 import { exportAdminReport } from '@/lib/reporting';
+import { getAdjustedDailyRate, getMessPoolBalance, getPersonalBalance } from '@/lib/mess-stats';
 import SetAdminPasswordDialog from './SetAdminPasswordDialog';
 import ResetAdminPasswordDialog from './ResetAdminPasswordDialog';
 import SuperAdminChangePasswordDialog from './SuperAdminChangePasswordDialog';
@@ -134,22 +136,29 @@ const AdminDashboard = ({ settings, members, adminUser }: AdminDashboardProps) =
     });
   }, [expenses, expenseFilters, memberMap]);
 
-  const { totalContribution, totalSpent, balance, membersWithExpenses, adjustedDailyRate } = useMemo(() => {
+  const { totalContribution, totalSpent, balance, membersWithExpenses, adjustedDailyRate, remainingDays, cycleEnded } = useMemo(() => {
     const currentExpenses = expenses.filter(e => !e.period);
     const totalContribution = members.reduce((sum, m) => sum + m.contribution, 0);
     const totalSpent = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const balance = totalContribution - totalSpent;
+    const balance = getMessPoolBalance(totalContribution, totalSpent);
     const expenseTotals = new Map<string, number>();
     for (const e of currentExpenses) {
       expenseTotals.set(e.memberId, (expenseTotals.get(e.memberId) ?? 0) + e.amount);
     }
     const membersWithExpenses = members.map(m => {
       const totalExpenses = expenseTotals.get(m.id) ?? 0;
-      return { ...m, totalExpenses, balance: m.contribution - totalExpenses };
+      return { ...m, totalExpenses, balance: getPersonalBalance(m.contribution, totalExpenses) };
     });
-    const remainingDays = settings.totalDays - (new Date().getDate() - 1);
-    const adjustedDailyRate = remainingDays > 0 ? balance / remainingDays : 0;
-    return { totalContribution, totalSpent, balance, membersWithExpenses, adjustedDailyRate };
+    const { rate, remainingDays, cycleEnded } = getAdjustedDailyRate(balance, settings.totalDays);
+    return {
+      totalContribution,
+      totalSpent,
+      balance,
+      membersWithExpenses,
+      adjustedDailyRate: rate,
+      remainingDays,
+      cycleEnded,
+    };
   }, [settings, members, expenses]);
 
   const handleDownloadReport = async () => {
@@ -204,16 +213,59 @@ const AdminDashboard = ({ settings, members, adminUser }: AdminDashboardProps) =
         </div>
       </div>
       <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mt-8">
-        <StatCard title="Total Contribution" value={totalContribution} icon={DollarSign} formatAsCurrency />
-        <StatCard title="Total Spent (Current)" value={totalSpent} icon={ShoppingCart} formatAsCurrency />
-        <StatCard title="Balance (Current)" value={balance} icon={DollarSign} formatAsCurrency isPositive={balance >= 0} />
-        <StatCard title="Adj. Daily Rate" value={adjustedDailyRate} icon={TrendingUp} formatAsCurrency isPositive={adjustedDailyRate >= 0} />
+        <StatCard
+          title="Total Contributions"
+          value={totalContribution}
+          icon={DollarSign}
+          formatAsCurrency
+          description="All members combined"
+        />
+        <StatCard
+          title="Total Spent"
+          value={totalSpent}
+          icon={ShoppingCart}
+          formatAsCurrency
+          description="All expenses this cycle"
+        />
+        <StatCard
+          title="Mess Pool Left"
+          value={balance}
+          icon={DollarSign}
+          formatAsCurrency
+          isPositive={balance >= 0}
+          description="Contributions − all expenses (shared money)"
+        />
+        <StatCard
+          title="Daily Spend Guide"
+          value={adjustedDailyRate}
+          icon={TrendingUp}
+          formatAsCurrency
+          isPositive={!cycleEnded && adjustedDailyRate >= 0}
+          displayValue={cycleEnded ? 'Cycle ended' : undefined}
+          description={
+            cycleEnded
+              ? 'No days left in this cycle'
+              : `${remainingDays} day${remainingDays === 1 ? '' : 's'} left · pool ÷ days`
+          }
+        />
         <StatCard title="Total Members" value={members.length} icon={Users} />
       </div>
+      <Alert className="mt-6 bg-slate-50 border-slate-200">
+        <Info className="h-4 w-4" />
+        <AlertTitle className="text-sm font-semibold">How to read these numbers</AlertTitle>
+        <AlertDescription className="text-sm text-muted-foreground mt-1">
+          <strong>Mess Pool Left</strong> is money left for the whole group (contributions minus all expenses).
+          The table below shows each member&apos;s <strong>personal balance</strong> (their contribution minus what they paid).
+          Red personal balances are normal when someone paid more bills than they contributed — the pool can still be positive.
+        </AlertDescription>
+      </Alert>
       <div className="mt-10 space-y-10">
         <Card className="shadow-lg">
           <CardContent className="p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Members Overview</h2>
+            <h2 className="text-2xl font-semibold mb-1 text-gray-800">Members Overview</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Personal balance = contribution − expenses paid by that member (not the shared pool).
+            </p>
             <MembersTable
               members={membersWithExpenses}
               onEdit={(m) => setEditingMember(m)}

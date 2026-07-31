@@ -97,9 +97,23 @@ const MemberDashboard = ({ members, currentUser }: MemberDashboardProps) => {
         </div>
         <div className="grid gap-6 grid-cols-2 lg:grid-cols-4 mt-8">
           <StatCard title="My Contribution" value={currentUser.contribution} icon={DollarSign} formatAsCurrency />
-          <StatCard title="My Total Spent (Current)" value={myTotalSpent} icon={ShoppingCart} formatAsCurrency />
-          <StatCard title="My Balance (Current)" value={myBalance} icon={Wallet} formatAsCurrency isPositive={myBalance >= 0} />
-          <StatCard title="Adj. Daily Rate" value={adjustedDailyRate} icon={TrendingUp} formatAsCurrency isPositive={adjustedDailyRate >= 0} />
+          <StatCard title="My Total Spent" value={myTotalSpent} icon={ShoppingCart} formatAsCurrency description="Expenses you paid this cycle" />
+          <StatCard
+            title="My Personal Balance"
+            value={myBalance}
+            icon={Wallet}
+            formatAsCurrency
+            isPositive={myBalance >= 0}
+            description="Your contribution − your paid expenses"
+          />
+          <StatCard
+            title="Daily Spend Guide"
+            value={adjustedDailyRate}
+            icon={TrendingUp}
+            formatAsCurrency
+            isPositive={adjustedDailyRate >= 0}
+            description="Shared mess pool ÷ days left"
+          />
         </div>
         <div className="mt-10">
           <Card className="shadow-lg">
