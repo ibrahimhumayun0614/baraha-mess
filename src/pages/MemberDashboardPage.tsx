@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
 import { useAuthStore } from '@/hooks/use-auth-store';
-import { useMembers, useMessSettings } from '@/hooks/use-mess-queries';
+import { useMemberDashboard } from '@/hooks/use-mess-queries';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import MemberDashboard from '@/components/dashboard/MemberDashboard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,11 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function MemberDashboardPage() {
   const navigate = useNavigate();
   const { member: currentUser, logout } = useAuthStore();
-  const { isLoading: settingsLoading, error: settingsError } = useMessSettings();
-  const { data: members = [], isLoading: membersLoading, error: membersError } = useMembers();
-
-  const isLoading = settingsLoading || membersLoading;
-  const error = settingsError || membersError;
+  const { data, isLoading, error } = useMemberDashboard(currentUser?.id ?? '');
 
   const handleLogout = () => {
     logout();
@@ -51,7 +47,17 @@ export function MemberDashboardPage() {
         </div>
       );
     }
-    return <MemberDashboard members={members} currentUser={currentUser} />;
+    if (data) {
+      return (
+        <MemberDashboard
+          members={data.members}
+          currentUser={currentUser}
+          expenses={data.expenses}
+          stats={data.stats}
+        />
+      );
+    }
+    return null;
   };
 
   return (

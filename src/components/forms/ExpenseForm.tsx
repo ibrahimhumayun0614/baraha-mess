@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api-client';
-import { QUERY_KEYS } from '@/hooks/use-mess-queries';
+import { invalidateMessData } from '@/hooks/use-mess-queries';
 import { getDeviceInfo } from '@/lib/utils';
 import { useAuthStore } from '@/hooks/use-auth-store';
 import type { Member, Expense } from '@shared/types';
@@ -58,8 +58,7 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
     },
     onSuccess: () => {
       toast.success(`Expense ${isEditMode ? 'updated' : 'logged'} successfully!`);
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['messStats'] });
+      invalidateMessData(queryClient);
       onSuccess();
     },
     onError: (error) => {

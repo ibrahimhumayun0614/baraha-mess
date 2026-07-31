@@ -15,7 +15,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60_000,
+      staleTime: 120_000,
       gcTime: 5 * 60_000,
       refetchOnWindowFocus: false,
       retry: 1,

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
 import { useAuthStore } from '@/hooks/use-auth-store';
-import { useMembers, useMessSettings } from '@/hooks/use-mess-queries';
+import { useAdminDashboard } from '@/hooks/use-mess-queries';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import AdminDashboard from '@/components/dashboard/AdminDashboard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,11 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function AdminDashboardPage() {
   const navigate = useNavigate();
   const { member, logout } = useAuthStore();
-  const { data: settings, isLoading: settingsLoading, error: settingsError } = useMessSettings();
-  const { data: members = [], isLoading: membersLoading, error: membersError } = useMembers();
-
-  const isLoading = settingsLoading || membersLoading;
-  const error = settingsError || membersError;
+  const { data, isLoading, error } = useAdminDashboard();
 
   const handleLogout = () => {
     logout();
@@ -49,10 +45,15 @@ export function AdminDashboardPage() {
         </div>
       );
     }
-    if (settings) {
+    if (data) {
       return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <AdminDashboard settings={settings} members={members} adminUser={member} />
+          <AdminDashboard
+            settings={data.settings}
+            members={data.members}
+            adminUser={member}
+            initialExpenses={data.expenses}
+          />
         </div>
       );
     }

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { api } from '@/lib/api-client';
 import type { MessSettings } from '@shared/types';
-import { QUERY_KEYS } from '@/hooks/use-mess-queries';
+import { invalidateMessData } from '@/hooks/use-mess-queries';
 const SetupMessFormSchema = z.object({
   standardContribution: z.coerce.number().min(0, 'Must be a positive number'),
   reducedContribution: z.coerce.number().min(0, 'Must be a positive number'),
@@ -53,10 +53,7 @@ const SetupMessForm = ({ settings, onSuccess }: SetupMessFormProps) => {
       } else {
         toast.success('Mess settings saved successfully!');
       }
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.messSettings });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.members });
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.messStats });
+      invalidateMessData(queryClient);
       onSuccess();
     },
     onError: (error) => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { DollarSign, Users, ShoppingCart, Download, TrendingUp, KeyRound, XCircle, Info } from 'lucide-react';
@@ -7,7 +7,7 @@ import { startOfDay, endOfDay } from 'date-fns';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
 import { useAuthStore } from '@/hooks/use-auth-store';
-import { useExpenses, useAuditLogs, QUERY_KEYS } from '@/hooks/use-mess-queries';
+import { useExpenses, useAuditLogs, QUERY_KEYS, invalidateMessData } from '@/hooks/use-mess-queries';
 import type { MessSettings, Member, Expense, AuditLog } from '@shared/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,9 +31,10 @@ interface AdminDashboardProps {
   settings: MessSettings;
   members: Member[];
   adminUser: Member | null;
+  initialExpenses: Expense[];
 }
 
-const AdminDashboard = ({ settings, members, adminUser }: AdminDashboardProps) => {
+const AdminDashboard = ({ settings, members, adminUser, initialExpenses }: AdminDashboardProps) => {
   const queryClient = useQueryClient();
   const { role, member } = useAuthStore();
   const isSuperAdmin = role === 'admin' && !member;
@@ -44,9 +45,18 @@ const AdminDashboard = ({ settings, members, adminUser }: AdminDashboardProps) =
   const [isChangePasswordOpen, setChangePasswordOpen] = useState(false);
   const [expenseFilters, setExpenseFilters] = useState<any>({ period: 'current' });
   const [isDownloading, setIsDownloading] = useState(false);
+  const [loadAuditLogs, setLoadAuditLogs] = useState(false);
 
-  const { data: expenses = [] } = useExpenses();
-  const { data: auditLogs = [] } = useAuditLogs(isSuperAdmin);
+  const needsAllExpenses = expenseFilters.period !== 'current';
+  const { data: allExpenses = [] } = useExpenses({ period: 'all' }, needsAllExpenses);
+  const expenses = needsAllExpenses ? allExpenses : initialExpenses;
+  const { data: auditLogs = [] } = useAuditLogs(isSuperAdmin && loadAuditLogs);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    const timer = window.setTimeout(() => setLoadAuditLogs(true), 100);
+    return () => window.clearTimeout(timer);
+  }, [isSuperAdmin]);
 
   const { mutate: createAuditLog } = useMutation({
     mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
@@ -57,7 +67,7 @@ const AdminDashboard = ({ settings, members, adminUser }: AdminDashboardProps) =
     mutationFn: (id: string) => api(`/api/members/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       toast.success('Member deleted successfully');
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.members });
+      invalidateMessData(queryClient);
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -66,8 +76,7 @@ const AdminDashboard = ({ settings, members, adminUser }: AdminDashboardProps) =
     mutationFn: (id: string) => api(`/api/expenses/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       toast.success('Expense deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.messStats });
+      invalidateMessData(queryClient);
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -77,7 +86,7 @@ const AdminDashboard = ({ settings, members, adminUser }: AdminDashboardProps) =
       api(`/api/members/${memberId}/role`, { method: 'PUT', body: JSON.stringify({ role: newRole, password }) }),
     onSuccess: () => {
       toast.success("Member's role updated successfully");
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.members });
+      invalidateMessData(queryClient);
       setPromotingMember(null);
     },
     onError: (err) => toast.error(`Failed to update role: ${(err as Error).message}`),

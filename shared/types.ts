@@ -42,3 +42,20 @@ export interface AuditLog {
   deviceInfo: string;
   metadata?: Record<string, any>;
 }
+export interface MessStats {
+  totalContribution: number;
+  totalSpent: number;
+  balance: number;
+  adjustedDailyRate: number;
+}
+export interface AdminDashboardData {
+  settings: MessSettings;
+  members: Member[];
+  expenses: Expense[];
+  stats: MessStats;
+}
+export interface MemberDashboardData {
+  members: Member[];
+  expenses: Expense[];
+  stats: MessStats;
+}

@@ -2,10 +2,9 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
 import { DollarSign, ShoppingCart, Wallet, PlusCircle, Download, TrendingUp } from 'lucide-react';
-import type { Member, Expense, AuditLog } from '@shared/types';
+import type { Member, Expense, AuditLog, MessStats } from '@shared/types';
 import { api } from '@/lib/api-client';
 import { getDeviceInfo } from '@/lib/utils';
-import { useExpenses, useMessStats } from '@/hooks/use-mess-queries';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -17,15 +16,14 @@ import { exportMemberReport } from '@/lib/reporting';
 interface MemberDashboardProps {
   members: Member[];
   currentUser: Member;
+  expenses: Expense[];
+  stats: MessStats;
 }
 
-const MemberDashboard = ({ members, currentUser }: MemberDashboardProps) => {
+const MemberDashboard = ({ members, currentUser, expenses, stats }: MemberDashboardProps) => {
   const [isExpenseOpen, setExpenseOpen] = useState(false);
   const [expenseFilters, setExpenseFilters] = useState<any>({ period: 'all' });
   const [isDownloading, setIsDownloading] = useState(false);
-
-  const { data: allMyExpenses = [] } = useExpenses({ memberId: currentUser.id });
-  const { data: stats } = useMessStats();
 
   const { mutate: createAuditLog } = useMutation({
     mutationFn: (log: Partial<AuditLog>) => api('/api/audit-logs', { method: 'POST', body: JSON.stringify(log) }),
@@ -33,13 +31,13 @@ const MemberDashboard = ({ members, currentUser }: MemberDashboardProps) => {
   });
 
   const { myTotalSpent, myBalance } = useMemo(() => {
-    const myCurrentExpenses = allMyExpenses.filter(e => !e.period);
+    const myCurrentExpenses = expenses.filter(e => !e.period);
     const myTotalSpent = myCurrentExpenses.reduce((sum, e) => sum + e.amount, 0);
     const myBalance = currentUser.contribution - myTotalSpent;
     return { myTotalSpent, myBalance };
-  }, [allMyExpenses, currentUser.contribution]);
+  }, [expenses, currentUser.contribution]);
 
-  const adjustedDailyRate = stats?.adjustedDailyRate ?? 0;
+  const adjustedDailyRate = stats.adjustedDailyRate;
 
   const handleDownloadReport = async () => {
     setIsDownloading(true);
@@ -49,7 +47,7 @@ const MemberDashboard = ({ members, currentUser }: MemberDashboardProps) => {
         totalExpenses: myTotalSpent,
         balance: myBalance,
       };
-      await exportMemberReport(memberWithBalance, allMyExpenses, (log) => {
+      await exportMemberReport(memberWithBalance, expenses, (log) => {
         createAuditLog({
           ...log,
           userId: currentUser.id,
@@ -120,7 +118,7 @@ const MemberDashboard = ({ members, currentUser }: MemberDashboardProps) => {
             <CardContent className="p-6">
               <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Expense History</h2>
               <ExpensesTable
-                expenses={allMyExpenses}
+                expenses={expenses}
                 members={members}
                 onFiltersChange={setExpenseFilters}
               />

@@ -2,8 +2,23 @@ import { Hono } from "hono";
 import type { Env } from './core-utils';
 import { MessSettingsEntity, MemberEntity, ExpenseEntity, AuditLogEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
-import type { Member, MemberType, Expense, AuditLog } from "@shared/types";
+import type { Member, MemberType, Expense, AuditLog, MessSettings, MessStats } from "@shared/types";
 import { hashPassword } from "./auth-utils";
+
+function computeMessStats(settings: MessSettings, members: Member[], expenses: Expense[]): MessStats {
+  const currentExpenses = expenses.filter(e => !e.period);
+  const totalContribution = members.reduce((sum, m) => sum + m.contribution, 0);
+  const totalSpent = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const balance = totalContribution - totalSpent;
+  const remainingDays = Math.max(0, settings.totalDays - (new Date().getDate() - 1));
+  const adjustedDailyRate = remainingDays > 0 ? balance / remainingDays : 0;
+  return { totalContribution, totalSpent, balance, adjustedDailyRate };
+}
+
+function stripMemberPasswords(members: Member[]): Member[] {
+  return members.map(({ password, ...rest }) => rest);
+}
+
 // Helper to fetch all items from a paginated list
 async function listAll<T>(
   fetchPage: (cursor?: string | null) => Promise<{ items: T[]; next: string | null }>
@@ -108,13 +123,35 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       listAll(cursor => MemberEntity.list(c.env, cursor)),
       listAll(cursor => ExpenseEntity.list(c.env, cursor)),
     ]);
-    const currentExpenses = expenses.filter(e => !e.period);
-    const totalContribution = members.reduce((sum, m) => sum + m.contribution, 0);
-    const totalSpent = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const balance = totalContribution - totalSpent;
-    const remainingDays = Math.max(0, settings.totalDays - (new Date().getDate() - 1));
-    const adjustedDailyRate = remainingDays > 0 ? balance / remainingDays : 0;
-    return ok(c, { totalContribution, totalSpent, balance, adjustedDailyRate });
+    return ok(c, computeMessStats(settings, members, expenses));
+  });
+  app.get('/api/mess/dashboard', async (c) => {
+    const [settings, members, allExpenses] = await Promise.all([
+      new MessSettingsEntity(c.env).getState(),
+      listAll(cursor => MemberEntity.list(c.env, cursor)),
+      listAll(cursor => ExpenseEntity.list(c.env, cursor)),
+    ]);
+    const currentExpenses = allExpenses.filter(e => !e.period);
+    return ok(c, {
+      settings,
+      members: stripMemberPasswords(members),
+      expenses: currentExpenses,
+      stats: computeMessStats(settings, members, allExpenses),
+    });
+  });
+  app.get('/api/mess/member-dashboard', async (c) => {
+    const memberId = c.req.query('memberId');
+    if (!isStr(memberId)) return bad(c, 'memberId is required');
+    const [settings, members, allExpenses] = await Promise.all([
+      new MessSettingsEntity(c.env).getState(),
+      listAll(cursor => MemberEntity.list(c.env, cursor)),
+      listAll(cursor => ExpenseEntity.list(c.env, cursor)),
+    ]);
+    return ok(c, {
+      members: stripMemberPasswords(members),
+      expenses: allExpenses.filter(e => e.memberId === memberId),
+      stats: computeMessStats(settings, members, allExpenses),
+    });
   });
   app.get('/api/audit-logs', async (c) => {
     const auditLogs = await listAll(cursor => AuditLogEntity.list(c.env, cursor));
@@ -136,11 +173,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // MEMBERS
   app.get('/api/members', async (c) => {
     const members = await listAll(cursor => MemberEntity.list(c.env, cursor));
-    const membersWithoutPasswords = members.map(m => {
-      const { password, ...rest } = m;
-      return rest;
-    });
-    return ok(c, membersWithoutPasswords);
+    return ok(c, stripMemberPasswords(members));
   });
   app.post('/api/members', async (c) => {
     const { name, type, days } = (await c.req.json()) as { name?: string; type?: MemberType; days?: number };
@@ -265,12 +298,11 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     let expenses = await listAll(cursor => ExpenseEntity.list(c.env, cursor));
     if (fromDate) expenses = expenses.filter(e => new Date(e.date) >= new Date(fromDate));
     if (toDate) expenses = expenses.filter(e => new Date(e.date) <= new Date(toDate));
-    if (period) {
-      if (period === 'current') {
-        expenses = expenses.filter(e => !e.period);
-      } else if (period !== 'all') {
-        expenses = expenses.filter(e => e.period === period);
-      }
+    const effectivePeriod = period ?? 'current';
+    if (effectivePeriod === 'current') {
+      expenses = expenses.filter(e => !e.period);
+    } else if (effectivePeriod !== 'all') {
+      expenses = expenses.filter(e => e.period === effectivePeriod);
     }
     if (memberId) expenses = expenses.filter(e => e.memberId === memberId);
     if (addedById) expenses = expenses.filter(e => e.addedById === addedById);
