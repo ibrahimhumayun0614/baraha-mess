@@ -93,27 +93,7 @@ const MemberDashboard = ({ members, currentUser, expenses, stats }: MemberDashbo
             </Button>
           </div>
         </div>
-        <div className="grid gap-6 grid-cols-2 lg:grid-cols-4 mt-8">
-          <StatCard title="My Contribution" value={currentUser.contribution} icon={DollarSign} formatAsCurrency />
-          <StatCard title="My Total Spent" value={myTotalSpent} icon={ShoppingCart} formatAsCurrency description="Expenses you paid this cycle" />
-          <StatCard
-            title="My Personal Balance"
-            value={myBalance}
-            icon={Wallet}
-            formatAsCurrency
-            isPositive={myBalance >= 0}
-            description="Your contribution − your paid expenses"
-          />
-          <StatCard
-            title="Daily Spend Guide"
-            value={adjustedDailyRate}
-            icon={TrendingUp}
-            formatAsCurrency
-            isPositive={adjustedDailyRate >= 0}
-            description="Shared mess pool ÷ days left"
-          />
-        </div>
-        <div className="mt-10">
+        <div className="mt-8">
           <Card className="shadow-lg">
             <CardContent className="p-6">
               <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Expense History</h2>

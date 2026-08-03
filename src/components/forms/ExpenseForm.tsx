@@ -29,18 +29,28 @@ interface ExpenseFormProps {
 }
 const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
   const queryClient = useQueryClient();
-  const loggedInMember = useAuthStore((state) => state.member);
+  const { role, member: loggedInMember } = useAuthStore();
   const isEditMode = !!expense;
+  const isAdmin = role === 'admin'; // Includes both Super Admin and Admin Members
+  const isStandardMember = role === 'member'; // Standard Members only
+
+  const initialMemberId = expense?.memberId || loggedInMember?.id || (members.length > 0 ? members[0].id : '');
+
   const form = useForm({
     resolver: zodResolver(ExpenseFormSchema),
     defaultValues: {
-      memberId: expense?.memberId || '',
+      memberId: initialMemberId,
       amount: expense?.amount || undefined,
       date: expense ? format(new Date(expense.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       note: expense?.note || '',
       period: expense?.period || '',
     },
   });
+
+  const activeMemberName = expense?.memberId
+    ? members.find((m) => m.id === expense.memberId)?.name || loggedInMember?.name
+    : loggedInMember?.name;
+
   const mutation = useMutation({
     mutationFn: (values: FormValues) => {
       const endpoint = isEditMode ? `/api/expenses/${expense.id}` : '/api/expenses';
@@ -65,34 +75,46 @@ const ExpenseForm = ({ members, expense, onSuccess }: ExpenseFormProps) => {
       toast.error(`Failed to ${isEditMode ? 'update' : 'log'} expense: ${error.message}`);
     },
   });
+
   function onSubmit(values: z.infer<typeof ExpenseFormSchema>) {
     mutation.mutate(values);
   }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="memberId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Paid By</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a member" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {members.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {isStandardMember ? (
+          <FormItem>
+            <FormLabel>Paid By</FormLabel>
+            <div className="flex items-center gap-2 p-3 bg-muted/60 rounded-md border text-sm font-medium">
+              <span>{activeMemberName || loggedInMember?.name}</span>
+              <span className="text-xs text-muted-foreground ml-auto">(Auto-assigned to your profile)</span>
+            </div>
+          </FormItem>
+        ) : (
+          <FormField
+            control={form.control}
+            name="memberId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Paid By</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a member" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {members.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <FormField
           control={form.control}
           name="amount"
